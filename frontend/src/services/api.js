@@ -19,4 +19,5 @@ export const getBoletos = async () => {
   }
 };
 
-// Resto das funções continuam iguais...
+// Adicione esta linha no final do arquivo
+export default api;
