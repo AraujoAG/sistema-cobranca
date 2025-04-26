@@ -1,0 +1,19 @@
+# Ignore a pasta node_modules
+node_modules/
+
+# Ignore o arquivo package-lock.json
+package-lock.json
+
+# Ignore logs
+*.log
+
+# Ignore os arquivos de build da aplicação
+build/
+dist/
+
+# Ignore arquivos do sistema (exemplo: arquivos do macOS)
+.DS_Store
+
+# Ignore configurações locais de editores
+.vscode/
+.idea/
