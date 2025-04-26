@@ -19,4 +19,6 @@ export const getBoletos = async () => {
   }
 };
 
+const baseURL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+
 // Resto das funções continuam iguais...
