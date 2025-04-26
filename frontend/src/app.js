@@ -6,6 +6,7 @@ import Clientes from './pages/Clientes';
 import NovoCliente from './pages/NovoCliente';
 import Mensagens from './pages/Mensagens';
 import Sidebar from './components/Sidebar';
+import Footer from './components/Footer';
 import './App.css';
 
 function App() {
@@ -21,6 +22,7 @@ function App() {
             <Route path="/mensagens" element={<Mensagens />} />
           </Routes>
         </main>
+        <Footer />
       </div>
     </Router>
   );

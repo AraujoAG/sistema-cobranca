@@ -33,9 +33,6 @@ function Sidebar() {
           </Link>
         </li>
       </ul>
-      <div className="sidebar-footer">
-        <p>Bot de Cobrança v1.0</p>
-      </div>
     </nav>
   );
 }
