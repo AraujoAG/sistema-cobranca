@@ -9,6 +9,11 @@ function Sidebar() {
   return (
     <nav className="sidebar">
       <div className="sidebar-header">
+        <img 
+          src="https://altalinhamoveis.com.br/new/wp-content/uploads/2023/11/logotipo-alta-linha-moveis-planejados-e-decoracoes-sorocaba-2.png" 
+          alt="Alta Linha Móveis" 
+          className="sidebar-logo"
+        />
         <h2>Sistema de Cobrança</h2>
       </div>
       <ul className="nav-links">

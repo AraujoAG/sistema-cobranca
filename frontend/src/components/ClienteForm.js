@@ -25,6 +25,27 @@ function ClienteForm({ cliente, onSalvar }) {
       setErro('Todos os campos são obrigatórios');
       return false;
     }
+    
+    // Validar formato do telefone
+    const telefoneRegex = /^\d{10,13}$/;
+    if (!telefoneRegex.test(formData.Telefone.replace(/\D/g, ''))) {
+      setErro('Telefone inválido. Use o formato: 5515999999999');
+      return false;
+    }
+    
+    // Validar formato da data
+    const dataRegex = /^\d{2}\/\d{2}\/\d{4}$/;
+    if (!dataRegex.test(formData.Vencimento)) {
+      setErro('Data inválida. Use o formato: DD/MM/AAAA');
+      return false;
+    }
+    
+    // Validar valor numérico
+    if (isNaN(parseFloat(formData.Valor))) {
+      setErro('Valor inválido. Digite apenas números');
+      return false;
+    }
+    
     return true;
   };
 
