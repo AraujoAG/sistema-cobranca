@@ -1,9 +1,11 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import App from './App';
+import './index.css'; // Se você tiver um arquivo de estilo global
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <h1>Olá, Bot de Cobrança!</h1>
+    <App />
   </React.StrictMode>
 );
