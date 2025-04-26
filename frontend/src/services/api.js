@@ -3,6 +3,7 @@ import axios from 'axios';
 // Ambiente de desenvolvimento vs. produção
 const baseURL = process.env.NODE_ENV === 'production' 
   ? '/api'  // Em produção, o backend e frontend estarão no mesmo domínio
+  : 'http://localhost:5000/api'; // Em desenvolvimento, apontando para o backend local
 
 const api = axios.create({
   baseURL
@@ -17,7 +18,5 @@ export const getBoletos = async () => {
     throw error;
   }
 };
-
-const baseURL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 // Resto das funções continuam iguais...
