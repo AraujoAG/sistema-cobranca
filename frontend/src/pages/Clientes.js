@@ -16,6 +16,7 @@ function Clientes() {
   const carregarClientes = async () => {
     try {
       setLoading(true);
+      setErro('');
       const response = await api.get('/clientes');
       setClientes(response.data);
       setLoading(false);
@@ -38,7 +39,7 @@ function Clientes() {
     if (!clienteParaRemover) return;
     
     try {
-      await api.delete(`/clientes/${clienteParaRemover._id || clienteParaRemover.id}`);
+      await api.delete(`/clientes/${clienteParaRemover.ID}`);
       setClienteParaRemover(null);
       carregarClientes();
     } catch (error) {
@@ -104,13 +105,13 @@ function Clientes() {
               </thead>
               <tbody>
                 {clientes.map(cliente => (
-                  <tr key={cliente._id || cliente.id}>
+                  <tr key={cliente.ID}>
                     <td>{cliente.Nome}</td>
                     <td>{cliente.Telefone}</td>
                     <td>{formatarData(cliente.Vencimento)}</td>
                     <td>{formatarValor(cliente.Valor)}</td>
                     <td>
-                      <Link to={`/editar-cliente/${cliente._id || cliente.id}`} className="btn btn-secondary btn-sm" style={{ marginRight: '5px' }}>
+                      <Link to={`/editar-cliente/${cliente.ID}`} className="btn btn-secondary btn-sm" style={{ marginRight: '5px' }}>
                         <i className="fas fa-edit"></i>
                       </Link>
                       <button 

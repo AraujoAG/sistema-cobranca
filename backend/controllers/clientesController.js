@@ -6,12 +6,36 @@ const fs = require('fs');
 // Arquivo Excel dos boletos
 const arquivoBoletos = path.join(__dirname, '../bot/boletos.xlsx');
 
+// Função auxiliar para criar o arquivo Excel se não existir
+function garantirArquivoExcel() {
+  if (!fs.existsSync(arquivoBoletos)) {
+    // Criar diretório se não existir
+    const dir = path.dirname(arquivoBoletos);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    
+    // Criar arquivo Excel vazio
+    const workbook = xlsx.utils.book_new();
+    const worksheet = xlsx.utils.json_to_sheet([]);
+    xlsx.utils.book_append_sheet(workbook, worksheet, 'Boletos');
+    xlsx.writeFile(workbook, arquivoBoletos);
+  }
+}
+
 // Função auxiliar para ler os dados do Excel
 function lerDadosExcel() {
   try {
+    garantirArquivoExcel();
+    
     const workbook = xlsx.readFile(arquivoBoletos);
-    const sheetName = workbook.SheetNames[0];
+    const sheetName = workbook.SheetNames[0] || 'Boletos';
     const worksheet = workbook.Sheets[sheetName];
+    
+    if (!worksheet) {
+      return [];
+    }
+    
     return xlsx.utils.sheet_to_json(worksheet);
   } catch (error) {
     console.error('Erro ao ler arquivo Excel:', error);
@@ -22,6 +46,8 @@ function lerDadosExcel() {
 // Função auxiliar para escrever os dados no Excel
 function escreverDadosExcel(dados) {
   try {
+    garantirArquivoExcel();
+    
     const workbook = xlsx.utils.book_new();
     const worksheet = xlsx.utils.json_to_sheet(dados);
     xlsx.utils.book_append_sheet(workbook, worksheet, 'Boletos');
@@ -59,6 +85,11 @@ exports.adicionarCliente = (req, res) => {
     
     // Adicionar ID único
     novoCliente.ID = Date.now().toString();
+    
+    // Adicionar campo Status se não existir
+    if (!novoCliente.Status) {
+      novoCliente.Status = 'Pendente';
+    }
     
     // Adicionar novo cliente
     clientes.push(novoCliente);

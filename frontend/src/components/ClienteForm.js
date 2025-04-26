@@ -10,6 +10,7 @@ function ClienteForm({ cliente, onSalvar }) {
     Telefone: cliente?.Telefone || '',
     Vencimento: cliente?.Vencimento || '',
     Valor: cliente?.Valor || '',
+    Status: 'Pendente'
   });
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState('');

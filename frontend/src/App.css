@@ -27,6 +27,7 @@ body {
 .app-container {
   display: flex;
   min-height: 100vh;
+  position: relative;
 }
 
 .content {
@@ -37,6 +38,11 @@ body {
   position: relative;
   min-height: 100vh;
   padding-bottom: 60px; /* Espaço para o footer */
+  background-image: url('https://altalinhamoveis.com.br/new/wp-content/uploads/2023/11/logotipo-alta-linha-moveis-planejados-e-decoracoes-sorocaba-2.png');
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-size: contain;
+  background-attachment: fixed;
 }
 
 .content::before {
@@ -46,12 +52,13 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  background-image: url('https://altalinhamoveis.com.br/new/wp-content/uploads/2023/11/logotipo-alta-linha-moveis-planejados-e-decoracoes-sorocaba-2.png');
-  background-repeat: no-repeat;
-  background-position: center center;
-  background-size: cover;
-  opacity: 0.05;
-  z-index: -1;
+  background-color: rgba(255, 255, 255, 0.95); /* Overlay branco semi-transparente */
+  z-index: 1;
+}
+
+.content > * {
+  position: relative;
+  z-index: 2;
 }
 
 .card {
@@ -94,9 +101,8 @@ body {
 }
 
 .btn-success {
-  background-color: var(--accent-color);
-  color: var(--primary-color);
-  border: 1px solid var(--primary-color);
+  background-color: #4CAF50;
+  color: white;
 }
 
 .btn-warning {
