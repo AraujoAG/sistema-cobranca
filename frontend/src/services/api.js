@@ -1,23 +1,11 @@
+// frontend/src/services/api.js
 import axios from 'axios';
 
-// Ambiente de desenvolvimento vs. produção
-const baseURL = process.env.NODE_ENV === 'production' 
-  ? '/api'  // Em produção, o backend e frontend estarão no mesmo domínio
-  : 'http://localhost:5000/api'; // Em desenvolvimento, apontando para o backend local
-
 const api = axios.create({
-  baseURL
+  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5000/api',
+  headers: {
+    'Content-Type': 'application/json'
+  }
 });
 
-export const getBoletos = async () => {
-  try {
-    const response = await api.get('/boletos');
-    return response.data;
-  } catch (error) {
-    console.error('Erro ao buscar boletos:', error);
-    throw error;
-  }
-};
-
-// Adicione esta linha no final do arquivo
 export default api;

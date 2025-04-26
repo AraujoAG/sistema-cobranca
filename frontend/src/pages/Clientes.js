@@ -20,6 +20,7 @@ function Clientes() {
       setClientes(response.data);
       setLoading(false);
     } catch (error) {
+      console.error('Erro ao carregar clientes:', error);
       setErro('Erro ao carregar dados dos clientes');
       setLoading(false);
     }
@@ -37,7 +38,7 @@ function Clientes() {
     if (!clienteParaRemover) return;
     
     try {
-      await api.delete(`/clientes/${clienteParaRemover.ID}`);
+      await api.delete(`/clientes/${clienteParaRemover._id || clienteParaRemover.id}`);
       setClienteParaRemover(null);
       carregarClientes();
     } catch (error) {
@@ -103,13 +104,13 @@ function Clientes() {
               </thead>
               <tbody>
                 {clientes.map(cliente => (
-                  <tr key={cliente.ID}>
+                  <tr key={cliente._id || cliente.id}>
                     <td>{cliente.Nome}</td>
                     <td>{cliente.Telefone}</td>
                     <td>{formatarData(cliente.Vencimento)}</td>
                     <td>{formatarValor(cliente.Valor)}</td>
                     <td>
-                      <Link to={`/editar-cliente/${cliente.ID}`} className="btn btn-secondary btn-sm" style={{ marginRight: '5px' }}>
+                      <Link to={`/editar-cliente/${cliente._id || cliente.id}`} className="btn btn-secondary btn-sm" style={{ marginRight: '5px' }}>
                         <i className="fas fa-edit"></i>
                       </Link>
                       <button 

@@ -1,7 +1,6 @@
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
-const morgan = require('morgan');
 const mongoose = require('mongoose');
 require('dotenv').config();
 
@@ -11,142 +10,169 @@ const PORT = process.env.PORT || 5000;
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
-app.use(morgan('dev'));
+app.use(express.json());
 
 // Conexão com MongoDB
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('Conectado ao MongoDB'))
   .catch(err => console.error('Erro ao conectar ao MongoDB:', err));
 
-// Modelo de boleto
-const boletoSchema = new mongoose.Schema({
-  nome: { type: String, required: true },
-  telefone: { type: String, required: true },
-  vencimento: { type: Date, required: true },
-  valor: { type: Number, required: true },
-  status: { type: String, default: 'Pendente' },
+// Modelo de cliente
+const clienteSchema = new mongoose.Schema({
+  Nome: { type: String, required: true },
+  Telefone: { type: String, required: true },
+  Vencimento: { type: String, required: true },
+  Valor: { type: Number, required: true },
+  Status: { type: String, default: 'Pendente' },
   createdAt: { type: Date, default: Date.now }
 });
 
-const Boleto = mongoose.model('Boleto', boletoSchema);
+const Cliente = mongoose.model('Cliente', clienteSchema);
 
-// Rotas
-app.get('/api/boletos', async (req, res) => {
+// Rotas de clientes
+app.get('/api/clientes', async (req, res) => {
   try {
-    const boletos = await Boleto.find();
-    res.json(boletos);
+    const clientes = await Cliente.find();
+    res.json(clientes);
   } catch (error) {
-    res.status(500).json({ mensagem: 'Erro ao buscar boletos' });
+    console.error('Erro ao buscar clientes:', error);
+    res.status(500).json({ mensagem: 'Erro ao buscar clientes' });
   }
 });
 
-app.post('/api/boletos', async (req, res) => {
-  const novoBoleto = req.body;
-  
-  if (!novoBoleto.nome || !novoBoleto.telefone || !novoBoleto.vencimento || !novoBoleto.valor) {
-    return res.status(400).json({ mensagem: 'Todos os campos são obrigatórios' });
-  }
-  
+app.post('/api/clientes', async (req, res) => {
   try {
-    const boleto = new Boleto(novoBoleto);
-    await boleto.save();
-    res.status(201).json(boleto);
+    const { Nome, Telefone, Vencimento, Valor } = req.body;
+    
+    if (!Nome || !Telefone || !Vencimento || !Valor) {
+      return res.status(400).json({ erro: 'Todos os campos são obrigatórios' });
+    }
+    
+    const novoCliente = new Cliente({
+      Nome,
+      Telefone,
+      Vencimento,
+      Valor: parseFloat(Valor),
+      Status: 'Pendente'
+    });
+    
+    const clienteSalvo = await novoCliente.save();
+    res.status(201).json(clienteSalvo);
   } catch (error) {
-    res.status(500).json({ mensagem: 'Erro ao salvar boleto' });
+    console.error('Erro ao salvar cliente:', error);
+    res.status(500).json({ erro: 'Erro ao salvar cliente' });
   }
 });
 
-app.put('/api/boletos/:id', async (req, res) => {
-  const { id } = req.params;
-  const dadosAtualizados = req.body;
-  
+app.get('/api/clientes/:id', async (req, res) => {
   try {
-    const boleto = await Boleto.findByIdAndUpdate(
-      id, 
-      dadosAtualizados, 
+    const cliente = await Cliente.findById(req.params.id);
+    if (!cliente) {
+      return res.status(404).json({ erro: 'Cliente não encontrado' });
+    }
+    res.json(cliente);
+  } catch (error) {
+    res.status(500).json({ erro: 'Erro ao buscar cliente' });
+  }
+});
+
+app.put('/api/clientes/:id', async (req, res) => {
+  try {
+    const { Nome, Telefone, Vencimento, Valor } = req.body;
+    
+    const clienteAtualizado = await Cliente.findByIdAndUpdate(
+      req.params.id,
+      { Nome, Telefone, Vencimento, Valor: parseFloat(Valor) },
       { new: true }
     );
-    if (!boleto) {
-      return res.status(404).json({ mensagem: 'Boleto não encontrado' });
+    
+    if (!clienteAtualizado) {
+      return res.status(404).json({ erro: 'Cliente não encontrado' });
     }
-    res.json(boleto);
+    
+    res.json(clienteAtualizado);
   } catch (error) {
-    res.status(500).json({ mensagem: 'Erro ao atualizar boleto' });
+    res.status(500).json({ erro: 'Erro ao atualizar cliente' });
   }
 });
 
-app.delete('/api/boletos/:id', async (req, res) => {
-  const { id } = req.params;
-  
+app.delete('/api/clientes/:id', async (req, res) => {
   try {
-    const boleto = await Boleto.findByIdAndDelete(id);
-    if (!boleto) {
-      return res.status(404).json({ mensagem: 'Boleto não encontrado' });
+    const cliente = await Cliente.findByIdAndDelete(req.params.id);
+    if (!cliente) {
+      return res.status(404).json({ erro: 'Cliente não encontrado' });
     }
-    res.json({ mensagem: 'Boleto removido com sucesso' });
+    res.json({ mensagem: 'Cliente removido com sucesso' });
   } catch (error) {
-    res.status(500).json({ mensagem: 'Erro ao remover boleto' });
+    res.status(500).json({ erro: 'Erro ao remover cliente' });
   }
 });
 
-app.post('/api/enviar-mensagens', async (req, res) => {
-  const { ids } = req.body;
-  
-  if (!ids || !Array.isArray(ids)) {
-    return res.status(400).json({ mensagem: 'IDs dos boletos são obrigatórios' });
-  }
-  
+// Rotas de cobrança
+app.post('/api/cobrancas/disparar', async (req, res) => {
   try {
-    const boletosParaEnvio = await Boleto.find({ _id: { $in: ids } });
-    
-    if (boletosParaEnvio.length === 0) {
-      return res.status(400).json({ mensagem: 'Nenhum boleto válido para envio' });
-    }
-    
-    // Simulação de envio de mensagens
-    console.log('Enviando mensagens para:', boletosParaEnvio);
-    
-    // Atualizar status para 'Enviado'
-    await Boleto.updateMany(
-      { _id: { $in: ids } },
-      { $set: { status: 'Enviado' } }
-    );
-    
-    res.json({ 
-      mensagem: `${boletosParaEnvio.length} mensagens enviadas com sucesso`,
-      boletos: boletosParaEnvio
-    });
+    const clientes = await Cliente.find();
+    // Aqui você implementaria a lógica de envio de mensagens
+    res.json({ mensagem: 'Mensagens disparadas com sucesso', total: clientes.length });
   } catch (error) {
-    res.status(500).json({ mensagem: 'Erro ao processar envio de mensagens' });
+    res.status(500).json({ erro: 'Erro ao disparar mensagens' });
   }
 });
 
-app.get('/api/dashboard', async (req, res) => {
+app.post('/api/cobrancas/disparar-individual', async (req, res) => {
   try {
-    const boletos = await Boleto.find();
+    const { id } = req.body;
+    const cliente = await Cliente.findById(id);
+    if (!cliente) {
+      return res.status(404).json({ erro: 'Cliente não encontrado' });
+    }
+    // Aqui você implementaria a lógica de envio de mensagem individual
+    res.json({ mensagem: 'Mensagem enviada com sucesso' });
+  } catch (error) {
+    res.status(500).json({ erro: 'Erro ao enviar mensagem' });
+  }
+});
+
+app.get('/api/cobrancas/historico', async (req, res) => {
+  try {
+    // Aqui você implementaria a lógica para buscar o histórico
+    // Por enquanto, retorna um array vazio
+    res.json([]);
+  } catch (error) {
+    res.status(500).json({ erro: 'Erro ao buscar histórico' });
+  }
+});
+
+// Rota do dashboard
+app.get('/api/dashboard/resumo', async (req, res) => {
+  try {
+    const clientes = await Cliente.find();
     
-    // Estatísticas simples
-    const total = boletos.length;
-    const pendentes = boletos.filter(b => b.status === 'Pendente').length;
-    const enviados = boletos.filter(b => b.status === 'Enviado').length;
-    const pagos = boletos.filter(b => b.status === 'Pago').length;
+    const hoje = new Date();
+    const boletosVencidos = clientes.filter(c => {
+      const partes = c.Vencimento.split('/');
+      const vencimento = new Date(partes[2], partes[1] - 1, partes[0]);
+      return vencimento < hoje;
+    }).length;
     
-    // Cálculo de valor total
-    const valorTotal = boletos.reduce((acc, curr) => acc + curr.valor, 0);
-    const valorPendente = boletos
-      .filter(b => b.status === 'Pendente')
-      .reduce((acc, curr) => acc + curr.valor, 0);
+    const boletosAVencer = clientes.filter(c => {
+      const partes = c.Vencimento.split('/');
+      const vencimento = new Date(partes[2], partes[1] - 1, partes[0]);
+      return vencimento >= hoje;
+    }).length;
+    
+    const valorTotal = clientes.reduce((acc, curr) => acc + curr.Valor, 0);
     
     res.json({
-      total,
-      pendentes,
-      enviados,
-      pagos,
-      valorTotal: valorTotal.toFixed(2),
-      valorPendente: valorPendente.toFixed(2)
+      totalClientes: clientes.length,
+      boletosVencidos,
+      boletosAVencer,
+      valorTotal,
+      mensagensEnviadas: 0 // Você pode implementar uma lógica para contar mensagens enviadas
     });
   } catch (error) {
-    res.status(500).json({ mensagem: 'Erro ao buscar dados do dashboard' });
+    console.error('Erro ao buscar resumo do dashboard:', error);
+    res.status(500).json({ erro: 'Erro ao buscar resumo do dashboard' });
   }
 });
 
