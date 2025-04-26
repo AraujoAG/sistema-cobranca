@@ -1,0 +1,18 @@
+[Unit]
+Description=Alta Linha Móveis Sistema de Cobranças
+After=network.target
+
+[Service]
+Type=simple
+User=seu_usuario
+WorkingDirectory=/caminho/para/pasta/do/bot
+ExecStart=/usr/bin/node server.js
+Restart=on-failure
+RestartSec=10
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=cobranca-bot
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target

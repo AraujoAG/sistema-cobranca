@@ -1,0 +1,152 @@
+2025/04/25-11:18:41.044 3cdc Reusing MANIFEST C:\Users\gabri\OneDrive\Área de Trabalho\bot-cobranca\tokens\cobranca-bot\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
+2025/04/25-11:18:41.044 3cdc Recovering log #805
+2025/04/25-11:18:41.147 3cdc Reusing old log C:\Users\gabri\OneDrive\Área de Trabalho\bot-cobranca\tokens\cobranca-bot\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/000805.log 
+2025/04/25-11:18:41.147 3cdc Delete type=2 #804
+2025/04/25-11:18:41.148 3cdc Delete type=2 #807
+2025/04/25-11:18:42.096 314 Level-0 table #821: started
+2025/04/25-11:18:42.130 314 Level-0 table #821: 1066261 bytes OK
+2025/04/25-11:18:42.131 314 Delete type=0 #805
+2025/04/25-11:18:42.132 3f4c Manual compaction at level-0 from '\x00 \x00\x00\x00' @ 72057594037927935 : 1 .. '\x00!\x00\x00\x00' @ 0 : 0; will stop at '\x00 \x00\x00\x05' @ 3318313 : 1
+2025/04/25-11:18:42.132 3f4c Compacting 1@0 + 0@1 files
+2025/04/25-11:18:42.158 3f4c Generated table #822@0: 20671 keys, 191851 bytes
+2025/04/25-11:18:42.172 3f4c Generated table #823@0: 12822 keys, 324193 bytes
+2025/04/25-11:18:42.179 3f4c Generated table #824@0: 4147 keys, 87838 bytes
+2025/04/25-11:18:42.179 3f4c Compacted 1@0 + 0@1 files => 603882 bytes
+2025/04/25-11:18:42.180 3f4c compacted to: files[ 0 3 31 0 0 0 0 ]
+2025/04/25-11:18:42.181 3f4c Delete type=2 #821
+2025/04/25-11:18:42.181 3f4c Manual compaction at level-0 from '\x00 \x00\x00\x05' @ 3318313 : 1 .. '\x00!\x00\x00\x00' @ 0 : 0; will stop at (end)
+2025/04/25-11:18:44.527 3cdc Compacting 1@1 + 16@2 files
+2025/04/25-11:18:44.620 3cdc Generated table #825@1: 49883 keys, 2217993 bytes
+2025/04/25-11:18:44.706 3cdc Generated table #826@1: 3176 keys, 2159955 bytes
+2025/04/25-11:18:44.746 3cdc Generated table #827@1: 2055 keys, 2160421 bytes
+2025/04/25-11:18:44.837 3cdc Generated table #828@1: 2605 keys, 2156351 bytes
+2025/04/25-11:18:44.875 3cdc Generated table #829@1: 3380 keys, 2151393 bytes
+2025/04/25-11:18:44.914 3cdc Generated table #830@1: 3314 keys, 2150539 bytes
+2025/04/25-11:18:44.954 3cdc Generated table #831@1: 3146 keys, 2151221 bytes
+2025/04/25-11:18:44.991 3cdc Generated table #832@1: 2747 keys, 2147936 bytes
+2025/04/25-11:18:45.032 3cdc Generated table #833@1: 3595 keys, 2150608 bytes
+2025/04/25-11:18:45.035 3cdc Generated table #834@1: 72 keys, 37681 bytes
+2025/04/25-11:18:45.035 3cdc Compacted 1@1 + 16@2 files => 19484098 bytes
+2025/04/25-11:18:45.035 3cdc compacted to: files[ 0 2 25 0 0 0 0 ]
+2025/04/25-11:18:45.036 3cdc Delete type=2 #562
+2025/04/25-11:18:45.036 3cdc Delete type=2 #563
+2025/04/25-11:18:45.036 3cdc Delete type=2 #564
+2025/04/25-11:18:45.036 3cdc Delete type=2 #565
+2025/04/25-11:18:45.036 3cdc Delete type=2 #566
+2025/04/25-11:18:45.036 3cdc Delete type=2 #567
+2025/04/25-11:18:45.036 3cdc Delete type=2 #568
+2025/04/25-11:18:45.037 3cdc Delete type=2 #569
+2025/04/25-11:18:45.037 3cdc Delete type=2 #581
+2025/04/25-11:18:45.037 3cdc Delete type=2 #602
+2025/04/25-11:18:45.037 3cdc Delete type=2 #624
+2025/04/25-11:18:45.037 3cdc Delete type=2 #682
+2025/04/25-11:18:45.037 3cdc Delete type=2 #708
+2025/04/25-11:18:45.037 3cdc Delete type=2 #722
+2025/04/25-11:18:45.037 3cdc Delete type=2 #762
+2025/04/25-11:18:45.037 3cdc Delete type=2 #818
+2025/04/25-11:18:45.037 3cdc Delete type=2 #822
+2025/04/25-11:18:45.360 3cdc Compacting 1@1 + 10@2 files
+2025/04/25-11:18:45.448 3cdc Generated table #835@1: 38641 keys, 2236606 bytes
+2025/04/25-11:18:45.536 3cdc Generated table #836@1: 28873 keys, 2268995 bytes
+2025/04/25-11:18:45.621 3cdc Generated table #837@1: 32754 keys, 2257513 bytes
+2025/04/25-11:18:45.700 3cdc Generated table #838@1: 30553 keys, 2246602 bytes
+2025/04/25-11:18:45.750 3cdc Generated table #839@1: 9980 keys, 2139607 bytes
+2025/04/25-11:18:45.826 3cdc Generated table #840@1: 9511 keys, 2132757 bytes
+2025/04/25-11:18:45.926 3cdc Generated table #841@1: 88204 keys, 2236228 bytes
+2025/04/25-11:18:46.030 3cdc Generated table #842@1: 96804 keys, 2245151 bytes
+2025/04/25-11:18:46.140 3cdc Generated table #843@1: 96859 keys, 2246792 bytes
+2025/04/25-11:18:46.253 3cdc Generated table #844@1: 96013 keys, 2244030 bytes
+2025/04/25-11:18:46.270 3cdc Generated table #845@1: 12214 keys, 284618 bytes
+2025/04/25-11:18:46.270 3cdc Compacted 1@1 + 10@2 files => 22538899 bytes
+2025/04/25-11:18:46.271 3cdc compacted to: files[ 0 1 26 0 0 0 0 ]
+2025/04/25-11:18:52.171 3cdc Compacting 1@1 + 2@2 files
+2025/04/25-11:18:52.361 3cdc Generated table #846@1: 96289 keys, 2245211 bytes
+2025/04/25-11:18:52.440 3cdc Generated table #847@1: 78867 keys, 1803654 bytes
+2025/04/25-11:18:52.440 3cdc Compacted 1@1 + 2@2 files => 4048865 bytes
+2025/04/25-11:18:52.440 3cdc compacted to: files[ 0 0 26 0 0 0 0 ]
+2025/04/25-11:18:52.441 3cdc Delete type=2 #553
+2025/04/25-11:18:52.441 3cdc Delete type=2 #554
+2025/04/25-11:18:52.441 3cdc Delete type=2 #555
+2025/04/25-11:18:52.441 3cdc Delete type=2 #809
+2025/04/25-11:18:52.441 3cdc Delete type=2 #810
+2025/04/25-11:18:52.441 3cdc Delete type=2 #811
+2025/04/25-11:18:52.441 3cdc Delete type=2 #812
+2025/04/25-11:18:52.442 3cdc Delete type=2 #813
+2025/04/25-11:18:52.442 3cdc Delete type=2 #814
+2025/04/25-11:18:52.442 3cdc Delete type=2 #815
+2025/04/25-11:18:52.442 3cdc Delete type=2 #816
+2025/04/25-11:18:52.442 3cdc Delete type=2 #817
+2025/04/25-11:18:52.442 3cdc Delete type=2 #823
+2025/04/25-11:18:52.442 3cdc Delete type=2 #824
+2025/04/25-11:34:48.575 3cdc Level-0 table #849: started
+2025/04/25-11:34:48.658 3cdc Level-0 table #849: 1310881 bytes OK
+2025/04/25-11:34:48.668 3cdc Delete type=0 #820
+2025/04/25-11:34:49.072 3cdc Compacting 1@0 + 0@1 files
+2025/04/25-11:34:49.097 3cdc Generated table #850@0: 21724 keys, 452665 bytes
+2025/04/25-11:34:49.103 3cdc Generated table #851@0: 1806 keys, 104350 bytes
+2025/04/25-11:34:49.106 3cdc Generated table #852@0: 681 keys, 14833 bytes
+2025/04/25-11:34:49.106 3cdc Compacted 1@0 + 0@1 files => 571848 bytes
+2025/04/25-11:34:49.107 3cdc compacted to: files[ 0 3 26 0 0 0 0 ]
+2025/04/25-11:34:49.108 3cdc Delete type=2 #849
+2025/04/25-11:34:58.798 3cdc Compacting 1@1 + 13@2 files
+2025/04/25-11:34:58.880 3cdc Generated table #853@1: 52911 keys, 2221073 bytes
+2025/04/25-11:34:58.917 3cdc Generated table #854@1: 3726 keys, 2159205 bytes
+2025/04/25-11:34:58.952 3cdc Generated table #855@1: 2057 keys, 2160184 bytes
+2025/04/25-11:34:58.990 3cdc Generated table #856@1: 2578 keys, 2156795 bytes
+2025/04/25-11:34:59.027 3cdc Generated table #857@1: 3374 keys, 2150901 bytes
+2025/04/25-11:34:59.065 3cdc Generated table #858@1: 3289 keys, 2150418 bytes
+2025/04/25-11:34:59.102 3cdc Generated table #859@1: 3165 keys, 2152142 bytes
+2025/04/25-11:34:59.138 3cdc Generated table #860@1: 2688 keys, 2147002 bytes
+2025/04/25-11:34:59.171 3cdc Generated table #861@1: 3600 keys, 2152263 bytes
+2025/04/25-11:34:59.202 3cdc Generated table #862@1: 3492 keys, 2151722 bytes
+2025/04/25-11:34:59.209 3cdc Generated table #863@1: 531 keys, 298242 bytes
+2025/04/25-11:34:59.210 3cdc Compacted 1@1 + 13@2 files => 21899947 bytes
+2025/04/25-11:34:59.211 3cdc compacted to: files[ 0 2 24 0 0 0 0 ]
+2025/04/25-11:34:59.212 3cdc Delete type=2 #465
+2025/04/25-11:34:59.212 3cdc Delete type=2 #538
+2025/04/25-11:34:59.212 3cdc Delete type=2 #570
+2025/04/25-11:34:59.212 3cdc Delete type=2 #825
+2025/04/25-11:34:59.212 3cdc Delete type=2 #826
+2025/04/25-11:34:59.212 3cdc Delete type=2 #827
+2025/04/25-11:34:59.212 3cdc Delete type=2 #828
+2025/04/25-11:34:59.212 3cdc Delete type=2 #829
+2025/04/25-11:34:59.212 3cdc Delete type=2 #830
+2025/04/25-11:34:59.212 3cdc Delete type=2 #831
+2025/04/25-11:34:59.212 3cdc Delete type=2 #832
+2025/04/25-11:34:59.212 3cdc Delete type=2 #833
+2025/04/25-11:34:59.213 3cdc Delete type=2 #834
+2025/04/25-11:34:59.213 3cdc Delete type=2 #850
+2025/04/25-11:35:16.673 3cdc Compacting 1@1 + 10@2 files
+2025/04/25-11:35:16.755 3cdc Generated table #864@1: 38641 keys, 2236096 bytes
+2025/04/25-11:35:16.842 3cdc Generated table #865@1: 28871 keys, 2268051 bytes
+2025/04/25-11:35:16.933 3cdc Generated table #866@1: 32750 keys, 2256934 bytes
+2025/04/25-11:35:17.015 3cdc Generated table #867@1: 30599 keys, 2247435 bytes
+2025/04/25-11:35:17.058 3cdc Generated table #868@1: 10109 keys, 2140022 bytes
+2025/04/25-11:35:17.104 3cdc Generated table #869@1: 9535 keys, 2132943 bytes
+2025/04/25-11:35:17.191 3cdc Generated table #870@1: 86039 keys, 2233178 bytes
+2025/04/25-11:35:17.290 3cdc Generated table #871@1: 97233 keys, 2247662 bytes
+2025/04/25-11:35:17.386 3cdc Generated table #872@1: 96728 keys, 2245480 bytes
+2025/04/25-11:35:17.486 3cdc Generated table #873@1: 95979 keys, 2246244 bytes
+2025/04/25-11:35:17.492 3cdc Generated table #874@1: 3202 keys, 74544 bytes
+2025/04/25-11:35:17.492 3cdc Compacted 1@1 + 10@2 files => 22328589 bytes
+2025/04/25-11:35:17.494 3cdc compacted to: files[ 0 1 25 0 0 0 0 ]
+2025/04/25-11:35:17.495 3cdc Delete type=2 #835
+2025/04/25-11:35:17.495 3cdc Delete type=2 #836
+2025/04/25-11:35:17.495 3cdc Delete type=2 #837
+2025/04/25-11:35:17.495 3cdc Delete type=2 #838
+2025/04/25-11:35:17.495 3cdc Delete type=2 #839
+2025/04/25-11:35:17.495 3cdc Delete type=2 #840
+2025/04/25-11:35:17.495 3cdc Delete type=2 #841
+2025/04/25-11:35:17.495 3cdc Delete type=2 #842
+2025/04/25-11:35:17.495 3cdc Delete type=2 #843
+2025/04/25-11:35:17.495 3cdc Delete type=2 #844
+2025/04/25-11:35:17.495 3cdc Delete type=2 #851
+2025/04/25-11:36:00.045 3f4c Compacting 1@1 + 3@2 files
+2025/04/25-11:36:00.230 3f4c Generated table #875@1: 95927 keys, 2245292 bytes
+2025/04/25-11:36:00.324 3f4c Generated table #876@1: 92109 keys, 2108981 bytes
+2025/04/25-11:36:00.325 3f4c Compacted 1@1 + 3@2 files => 4354273 bytes
+2025/04/25-11:36:00.326 3f4c compacted to: files[ 0 0 24 0 0 0 0 ]
+2025/04/25-11:36:00.327 3f4c Delete type=2 #845
+2025/04/25-11:36:00.327 3f4c Delete type=2 #846
+2025/04/25-11:36:00.327 3f4c Delete type=2 #847
+2025/04/25-11:36:00.327 3f4c Delete type=2 #852

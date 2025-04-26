@@ -1,0 +1,23 @@
+{
+  "ultimaExecucao": "2025-04-25T14:18:52.547Z",
+  "mensagensEnviadas": [
+    {
+      "id": "5515988301897-25/04/2025-1745590729086",
+      "nome": "Anderson",
+      "telefone": 5515988301897,
+      "valor": 250,
+      "vencimento": "25/04/2025",
+      "dataEnvio": "2025-04-25T14:18:49.086Z",
+      "status": "enviado"
+    },
+    {
+      "id": "5515977777777-25/04/2025-1745590732546",
+      "nome": "Carlos",
+      "telefone": "5515977777777",
+      "valor": 180,
+      "vencimento": "25/04/2025",
+      "dataEnvio": "2025-04-25T14:18:52.546Z",
+      "status": "enviado"
+    }
+  ]
+}
