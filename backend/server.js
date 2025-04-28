@@ -74,3 +74,28 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
 });
+
+// No arquivo server.js, adicione:
+
+// Rota para exibir o QR code
+app.get('/qrcode', (req, res) => {
+  if (global.qrCode) {
+    res.send(`
+      <html>
+        <body>
+          <h1>Escaneie o QR Code com o WhatsApp</h1>
+          <img src="${global.qrCode}" alt="QR Code" />
+        </body>
+      </html>
+    `);
+  } else {
+    res.send('QR Code ainda não disponível. Tente reiniciar o servidor.');
+  }
+});
+
+// Depois modifique a função catchQR no sendMessage.js:
+catchQR: (base64Qr, asciiQR) => {
+  console.log('QR CODE RECEBIDO:');
+  console.log(asciiQR);
+  global.qrCode = base64Qr; // Salva o QR code para exibição
+},

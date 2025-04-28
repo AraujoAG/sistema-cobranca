@@ -13,9 +13,11 @@ async function initializeWhatsApp() {
 
   try {
     console.log("Inicializando cliente WhatsApp...");
-    client = await wppconnect.create({
+    
+    // Configurações adicionais para ambiente de produção
+    const options = {
       session: 'cobranca-bot',
-      headless: true,
+      headless: 'new', // Usa o novo modo headless
       catchQR: (base64Qr, asciiQR) => {
         console.log('QR CODE RECEBIDO:');
         console.log(asciiQR);
@@ -27,8 +29,37 @@ async function initializeWhatsApp() {
           clientReady = true;
         }
       },
-      browserArgs: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
-    });
+      // Argumentos específicos para ambientes cloud como o Render
+      browserArgs: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--no-first-run',
+        '--no-zygote',
+        '--disable-gpu',
+        '--disable-infobars',
+        '--window-position=0,0',
+        '--ignore-certificate-errors',
+        '--ignore-certificate-errors-spki-list',
+        '--disable-extensions',
+        '--disable-web-security'
+      ],
+      puppeteerOptions: {
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-accelerated-2d-canvas',
+          '--no-first-run',
+          '--no-zygote',
+          '--disable-gpu'
+        ],
+        headless: 'new',
+      }
+    };
+    
+    client = await wppconnect.create(options);
     
     console.log("✅ Cliente WhatsApp inicializado com sucesso!");
     clientReady = true;
@@ -63,7 +94,7 @@ async function sendMessage(numero, mensagem) {
       await initializeWhatsApp();
     } catch (error) {
       console.error("❌ Não foi possível inicializar o WhatsApp:", error);
-      return;
+      return false;
     }
   }
   
