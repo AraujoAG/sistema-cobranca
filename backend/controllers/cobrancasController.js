@@ -38,24 +38,31 @@ exports.dispararCobrancaIndividual = async (req, res) => {
       return res.status(400).json({ erro: 'ID do cliente não fornecido' });
     }
     
+    console.log('Iniciando envio de cobrança individual para ID:', id);
+    
     // Ler dados do Excel
     const arquivoBoletos = path.join(__dirname, '../bot/boletos.xlsx');
+    console.log('Lendo arquivo Excel:', arquivoBoletos);
+    
     const workbook = xlsx.readFile(arquivoBoletos);
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
     const boletos = xlsx.utils.sheet_to_json(worksheet);
     
+    console.log(`Encontrados ${boletos.length} boletos no arquivo`);
+    
     // Encontrar o boleto específico
     const boleto = boletos.find(b => b.ID === id);
     
     if (!boleto) {
+      console.log('Boleto não encontrado para ID:', id);
       return res.status(404).json({ erro: 'Cliente não encontrado' });
     }
     
+    console.log('Dados do boleto encontrado:', JSON.stringify(boleto));
+    
     // Gerar a mensagem de cobrança
-    // Nota: Como o código completo do processaBoletos está truncado, adaptamos aqui
-    // Esta função deverá ser implementada conforme seu código original
-    // Esta é uma implementação simplificada
+    // Função para gerar a mensagem personalizada com base no tempo de atraso
     const gerarMensagem = (boleto) => {
       const { Nome, Vencimento, Valor } = boleto;
       const valorFormatado = parseFloat(Valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -64,18 +71,60 @@ exports.dispararCobrancaIndividual = async (req, res) => {
     };
     
     const mensagem = gerarMensagem(boleto);
+    console.log('Mensagem gerada:', mensagem.substring(0, 100) + '...');
     
-    // Enviar mensagem
-    const resultado = await sendMessage(boleto.Telefone, mensagem);
+    // Prepara número formatado
+    const numeroFormatado = boleto.Telefone.toString().replace(/\D/g, '');
+    console.log('Número formatado:', numeroFormatado);
+    
+    // Enviar mensagem com retentativas
+    let tentativas = 0;
+    let enviado = false;
+    
+    while (tentativas < 3 && !enviado) {
+      tentativas++;
+      console.log(`Tentativa ${tentativas} de envio para ${boleto.Nome}`);
+      
+      try {
+        enviado = await sendMessage(numeroFormatado, mensagem);
+        
+        if (!enviado && tentativas < 3) {
+          console.log('Aguardando 5 segundos antes da próxima tentativa...');
+          await new Promise(resolve => setTimeout(resolve, 5000));
+        }
+      } catch (envioError) {
+        console.error(`Erro na tentativa ${tentativas}:`, envioError.message);
+        if (tentativas < 3) {
+          console.log('Tentando novamente após o erro...');
+          await new Promise(resolve => setTimeout(resolve, 5000));
+        }
+      }
+    }
     
     // Registrar no histórico
-    if (resultado) {
+    if (enviado) {
       persistenceService.registrarMensagemEnviada(boleto, 'enviado');
-      res.json({ mensagem: 'Cobrança enviada com sucesso' });
+      console.log('Mensagem registrada com sucesso no histórico');
+      res.json({ 
+        mensagem: 'Cobrança enviada com sucesso', 
+        tentativas: tentativas,
+        detalhes: 'Mensagem registrada no histórico'
+      });
     } else {
-      res.status(500).json({ erro: 'Falha ao enviar cobrança' });
+      persistenceService.registrarMensagemEnviada(boleto, 'falha');
+      console.log('Falha registrada no histórico');
+      res.status(500).json({ 
+        erro: 'Falha ao enviar cobrança', 
+        tentativas: tentativas,
+        detalhes: 'Todas as tentativas falharam'
+      });
     }
   } catch (error) {
-    res.status(500).json({ erro: 'Erro ao disparar cobrança individual', detalhes: error.message });
+    console.error('Erro detalhado:', error);
+    res.status(500).json({ 
+      erro: 'Erro ao disparar cobrança individual', 
+      detalhes: error.message,
+      stack: error.stack
+    });
   }
 };

@@ -3,6 +3,10 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+const dotenv = require('dotenv');
+
+// Carregar variáveis de ambiente
+dotenv.config();
 
 const app = express();
 
@@ -64,19 +68,6 @@ app.get('/api/test', (req, res) => {
   res.json({ message: 'API está funcionando!' });
 });
 
-// Tratamento de erros
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ erro: 'Algo deu errado!', detalhes: err.message });
-});
-
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
-});
-
-// No arquivo server.js, adicione:
-
 // Rota para exibir o QR code
 app.get('/qrcode', (req, res) => {
   if (global.qrCode) {
@@ -93,9 +84,13 @@ app.get('/qrcode', (req, res) => {
   }
 });
 
-// Depois modifique a função catchQR no sendMessage.js:
-catchQR: (base64Qr, asciiQR) => {
-  console.log('QR CODE RECEBIDO:');
-  console.log(asciiQR);
-  global.qrCode = base64Qr; // Salva o QR code para exibição
-},
+// Tratamento de erros
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ erro: 'Algo deu errado!', detalhes: err.message });
+});
+
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`Servidor rodando na porta ${PORT}`);
+});
