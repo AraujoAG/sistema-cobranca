@@ -10,13 +10,23 @@ dotenv.config();
 
 const app = express();
 
-// Middlewares
+// Configuração de CORS melhorada
 app.use(cors({
   origin: ['https://sistema-cobranca-frontend.onrender.com', 'http://localhost:3000'],
-  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  credentials: true,
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
+
+// Middlewares
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Adicionar um log middleware para depuração
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+  next();
+});
 
 // Garante que as pastas necessárias existam
 const ensureDirectoryExistence = (dirPath) => {
@@ -49,6 +59,14 @@ const clientesRoutes = require('./routes/clientes');
 const cobrancasRoutes = require('./routes/cobrancas');
 const dashboardRoutes = require('./routes/dashboard');
 
+// Rota de teste/verificação de saúde
+app.get('/api/test', (req, res) => {
+  res.json({ 
+    message: 'API está funcionando!', 
+    timestamp: new Date().toISOString() 
+  });
+});
+
 // Usar rotas
 app.use('/api/clientes', clientesRoutes);
 app.use('/api/cobrancas', cobrancasRoutes);
@@ -62,11 +80,6 @@ if (process.env.NODE_ENV === 'production') {
     res.sendFile(path.join(__dirname, '../frontend/build', 'index.html'));
   });
 }
-
-// Rota de teste
-app.get('/api/test', (req, res) => {
-  res.json({ message: 'API está funcionando!' });
-});
 
 // Rota para exibir o QR code
 app.get('/qrcode', (req, res) => {
@@ -86,11 +99,22 @@ app.get('/qrcode', (req, res) => {
 
 // Tratamento de erros
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ erro: 'Algo deu errado!', detalhes: err.message });
+  console.error('Erro na aplicação:', err.stack);
+  res.status(500).json({ 
+    erro: 'Algo deu errado!', 
+    detalhes: err.message,
+    stack: process.env.NODE_ENV === 'production' ? undefined : err.stack 
+  });
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
 });
+
+// Configuração para manter o servidor aberto (evitar "dorme" no Render.com)
+setInterval(() => {
+  console.log('Keepalive ping');
+}, 1000 * 60 * 14); // A cada 14 minutos (o Render "adormece" após 15 min)
+
+module.exports = app;

@@ -3,22 +3,42 @@ import axios from 'axios';
 
 // Criando instância do axios com a URL correta
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'https://sistema-cobranca-backend.onrender.com/api',
+  baseURL: 'https://sistema-cobranca-backend.onrender.com/api',
   headers: {
     'Content-Type': 'application/json'
   },
-  // Aumenta o timeout para evitar problemas de conexão
-  timeout: 15000,
-  // Permite credenciais para CORS
-  withCredentials: true
+  // Permite envio de credenciais (cookies)
+  withCredentials: true,
+  // Aumenta o timeout para aplicações hospedadas no Render (que podem demorar para "acordar")
+  timeout: 15000
 });
 
-// Adiciona interceptor para tratar erros
+// Adiciona interceptador para logar requisições (ajuda no debug)
+api.interceptors.request.use(config => {
+  console.log(`Fazendo requisição para: ${config.url}`);
+  return config;
+});
+
+// Adiciona interceptador para tratar erros
 api.interceptors.response.use(
-  response => response,
+  response => {
+    console.log(`Resposta recebida de: ${response.config.url}`);
+    return response;
+  },
   error => {
-    console.error('Erro na API:', error);
-    // Você pode tratar erros específicos aqui
+    console.error('Erro na API:', error.message);
+    
+    // Detalhes adicionais para depuração
+    if (error.response) {
+      console.error('Detalhes do erro:', {
+        status: error.response.status,
+        data: error.response.data,
+        headers: error.response.headers
+      });
+    } else if (error.request) {
+      console.error('Erro na requisição (sem resposta):', error.request);
+    }
+    
     return Promise.reject(error);
   }
 );

@@ -62,7 +62,8 @@ async function sendMessage(numero, mensagem) {
           return false;
         }
         
-        if (response.data.includes('Message Sent')) {
+        if (response.data.includes('Message Sent') || 
+            response.data.includes('Message queued')) {
           console.log(`✅ Mensagem enviada com sucesso para ${telefoneFormatado}`);
           return true;
         }
@@ -107,5 +108,6 @@ async function waitForWhatsAppReady() {
 
 module.exports = {
   initializeWhatsApp,
-  sendMessage
+  sendMessage,
+  waitForWhatsAppReady
 };

@@ -15,17 +15,21 @@ exports.obterHistorico = (req, res) => {
     
     res.json(historico.mensagensEnviadas);
   } catch (error) {
+    console.error('Erro ao obter histórico:', error);
     res.status(500).json({ erro: 'Erro ao obter histórico', detalhes: error.message });
   }
 };
 
 exports.dispararCobrancas = async (req, res) => {
   try {
+    console.log('Iniciando processo de cobrança para todos os clientes...');
     // Chamar o módulo de processamento de boletos
     await processaBoletos();
     
+    console.log('Processo de cobrança concluído com sucesso');
     res.json({ mensagem: 'Processo de cobrança iniciado com sucesso' });
   } catch (error) {
+    console.error('Erro ao disparar cobranças:', error);
     res.status(500).json({ erro: 'Erro ao disparar cobranças', detalhes: error.message });
   }
 };
@@ -65,9 +69,65 @@ exports.dispararCobrancaIndividual = async (req, res) => {
     // Função para gerar a mensagem personalizada com base no tempo de atraso
     const gerarMensagem = (boleto) => {
       const { Nome, Vencimento, Valor } = boleto;
+      
+      // Calculando quantos dias faltam ou passaram desde o vencimento
+      const partes = Vencimento.split('/');
+      const dataVencimento = new Date(partes[2], partes[1] - 1, partes[0]);
+      const hoje = new Date();
+      
+      const diferencaDias = Math.floor((dataVencimento - hoje) / (1000 * 60 * 60 * 24));
+      
+      // Formatando o valor para exibição
       const valorFormatado = parseFloat(Valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
       
-      return `Olá ${Nome}, é a Alta Linha Móveis!\n\nGostaríamos de lembrá-lo que seu boleto no valor de ${valorFormatado} vence em ${Vencimento}.\n\nCaso já tenha efetuado o pagamento, por gentileza desconsidere esta mensagem.\n\nAtenciosamente,\nEquipe Alta Linha Móveis 📞 (15) 3222-3333`;
+      // Mensagens diferentes baseadas no tempo até o vencimento
+      let mensagem = '';
+      
+      if (diferencaDias > 0) {
+        // Ainda não venceu
+        mensagem = `Olá ${Nome}, é a Alta Linha Móveis! 
+
+Gostaríamos de lembrá-lo que seu boleto no valor de ${valorFormatado} vence em ${diferencaDias === 1 ? 'um dia' : diferencaDias + ' dias'} (${Vencimento}).
+
+Caso já tenha efetuado o pagamento, por gentileza desconsidere esta mensagem.
+
+Qualquer dúvida estamos à disposição!
+
+Atenciosamente,
+*Equipe Alta Linha Móveis*
+📞 (15) 3222-3333`;
+      
+      } else if (diferencaDias === 0) {
+        // Vence hoje
+        mensagem = `Olá ${Nome}, é a Alta Linha Móveis!
+
+Gostaríamos de informar que seu boleto no valor de ${valorFormatado} vence HOJE (${Vencimento}).
+
+Para sua comodidade, você pode realizar o pagamento até o final do dia para evitar juros e multas.
+
+Caso já tenha efetuado o pagamento, por gentileza desconsidere esta mensagem.
+
+Atenciosamente,
+*Equipe Alta Linha Móveis*
+📞 (15) 3222-3333`;
+      
+      } else {
+        // Já venceu
+        const diasAtraso = Math.abs(diferencaDias);
+        mensagem = `Olá ${Nome}, é a Alta Linha Móveis!
+
+Notamos que seu boleto no valor de ${valorFormatado} com vencimento em ${Vencimento} encontra-se em aberto ${diasAtraso === 1 ? 'há um dia' : `há ${diasAtraso} dias`}.
+
+Para regularizar sua situação e evitar maiores encargos, solicitamos que entre em contato conosco para negociação ou efetue o pagamento o quanto antes.
+
+Caso já tenha efetuado o pagamento recentemente, por favor, desconsidere esta mensagem.
+
+Atenciosamente,
+*Equipe Alta Linha Móveis*
+📞 (15) 3222-3333`;
+      }
+      
+      return mensagem;
     };
     
     const mensagem = gerarMensagem(boleto);
@@ -124,7 +184,7 @@ exports.dispararCobrancaIndividual = async (req, res) => {
     res.status(500).json({ 
       erro: 'Erro ao disparar cobrança individual', 
       detalhes: error.message,
-      stack: error.stack
+      stack: process.env.NODE_ENV === 'production' ? undefined : error.stack 
     });
   }
 };

@@ -11,6 +11,7 @@ function Dashboard() {
     boletosAVencer: 0,
     valorTotal: 0,
     mensagensEnviadas: 0,
+    ultimaExecucao: null
   });
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState('');
@@ -19,34 +20,50 @@ function Dashboard() {
     carregarDados();
   }, []);
 
-// No método carregarDados de Dashboard.js
-const carregarDados = async () => {
-  try {
-    setLoading(true);
-    console.log('Carregando dados do dashboard...');
-    
-    const response = await api.get('/dashboard/resumo');
-    console.log('Dados recebidos:', response.data);
-    
-    // Garantir que todos os campos existam para evitar erros de renderização
-    const dadosRecebidos = response.data || {};
-    
-    setResumo({
-      totalClientes: dadosRecebidos.totalClientes || 0,
-      boletosVencidos: dadosRecebidos.boletosVencidos || 0,
-      boletosAVencer: dadosRecebidos.boletosAVencer || 0,
-      valorTotal: dadosRecebidos.valorTotal || 0,
-      mensagensEnviadas: dadosRecebidos.mensagensEnviadas || 0,
-      ultimaExecucao: dadosRecebidos.ultimaExecucao || null,
-    });
-    
-    setLoading(false);
-  } catch (error) {
-    console.error('Erro ao carregar dados do dashboard:', error);
-    setErro('Erro ao carregar dados do dashboard. Tente novamente mais tarde.');
-    setLoading(false);
-  }
-};
+  const carregarDados = async () => {
+    try {
+      setLoading(true);
+      setErro('');
+      console.log('Carregando dados do dashboard...');
+      
+      // Teste da conexão com o backend
+      try {
+        const testResponse = await api.get('/test');
+        console.log('Teste de conexão bem-sucedido:', testResponse.data);
+      } catch (testError) {
+        console.error('Erro no teste de conexão:', testError);
+        setErro('Erro na conexão com o servidor. Verifique se o backend está online.');
+        setLoading(false);
+        return;
+      }
+      
+      try {
+        const response = await api.get('/dashboard/resumo');
+        console.log('Dados do dashboard recebidos:', response.data);
+        
+        // Garantir que todos os campos existam para evitar erros
+        const dadosRecebidos = response.data || {};
+        
+        setResumo({
+          totalClientes: dadosRecebidos.totalClientes || 0,
+          boletosVencidos: dadosRecebidos.boletosVencidos || 0,
+          boletosAVencer: dadosRecebidos.boletosAVencer || 0,
+          valorTotal: dadosRecebidos.valorTotal || 0,
+          mensagensEnviadas: dadosRecebidos.mensagensEnviadas || 0,
+          ultimaExecucao: dadosRecebidos.ultimaExecucao || null
+        });
+      } catch (apiError) {
+        console.error('Erro ao carregar resumo do dashboard:', apiError);
+        setErro('Falha ao carregar dados do dashboard. Verifique o console para detalhes.');
+      }
+      
+      setLoading(false);
+    } catch (error) {
+      console.error('Erro geral ao carregar dashboard:', error);
+      setErro(`Erro ao carregar dados: ${error.message}`);
+      setLoading(false);
+    }
+  };
 
   // Dados para o gráfico de pizza
   const statusBoletos = [
@@ -93,7 +110,7 @@ const carregarDados = async () => {
         />
         <StatusCard 
           title="Valor Total"
-          value={`R$ ${resumo.valorTotal.toFixed(2)}`}
+          value={`R$ ${(resumo.valorTotal || 0).toFixed(2)}`}
           icon="fas fa-money-bill-wave"
           color="#166088"
         />
@@ -151,6 +168,9 @@ const carregarDados = async () => {
             ? new Date(resumo.ultimaExecucao).toLocaleString('pt-BR') 
             : 'Nenhuma execução registrada'}
         </p>
+        <button className="btn btn-primary" onClick={carregarDados} style={{ marginTop: '10px' }}>
+          <i className="fas fa-sync-alt"></i> Atualizar Dados
+        </button>
       </div>
     </div>
   );
