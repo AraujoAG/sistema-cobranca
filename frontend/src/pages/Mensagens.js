@@ -213,7 +213,118 @@ function Mensagens() {
       }
       
       setErro(mensagemErro);
-<th>Status</th>
+      setEnviando(false);
+    }
+  };
+
+  const formatarData = (dataString) => {
+    try {
+      return new Date(dataString).toLocaleString('pt-BR');
+    } catch {
+      return dataString || 'Data inválida';
+    }
+  };
+
+  if (loading) {
+    return <div className="loader"></div>;
+  }
+
+  return (
+    <div>
+      <h1>Disparar Mensagens</h1>
+      
+      {erro && <div className="alert alert-danger">{erro}</div>}
+      {sucesso && <div className="alert alert-success">{sucesso}</div>}
+      
+      <div className="card">
+        <div className="card-header">
+          <h2>Clientes Disponíveis</h2>
+          <button 
+            className="btn btn-primary"
+            onClick={dispararMensagens}
+            disabled={enviando}
+          >
+            {enviando ? 'Enviando...' : 'Disparar Mensagens'}
+            {clientesSelecionados.length > 0 ? ` (${clientesSelecionados.length})` : ' (Todos)'}
+          </button>
+        </div>
+        
+        <div style={{ overflowX: 'auto' }}>
+          <table>
+            <thead>
+              <tr>
+                <th>
+                  <input 
+                    type="checkbox" 
+                    onChange={selecionarTodos}
+                    checked={clientesSelecionados.length === clientes.length && clientes.length > 0}
+                  />
+                </th>
+                <th>Nome</th>
+                <th>Telefone</th>
+                <th>Vencimento</th>
+                <th>Valor</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {clientes.length === 0 ? (
+                <tr>
+                  <td colSpan="6" style={{ textAlign: 'center' }}>Nenhum cliente cadastrado</td>
+                </tr>
+              ) : (
+                clientes.map(cliente => (
+                  <tr key={cliente.ID}>
+                    <td>
+                      <input 
+                        type="checkbox"
+                        checked={clientesSelecionados.includes(cliente.ID)}
+                        onChange={(e) => handleSelecaoCliente(e, cliente.ID)}
+                      />
+                    </td>
+                    <td>{cliente.Nome}</td>
+                    <td>{cliente.Telefone}</td>
+                    <td>{cliente.Vencimento}</td>
+                    <td>R$ {parseFloat(cliente.Valor).toFixed(2)}</td>
+                    <td>
+                      <button 
+                        className="btn btn-success btn-sm"
+                        onClick={() => dispararMensagemIndividual(cliente.ID)}
+                        disabled={enviando}
+                      >
+                        <i className="fas fa-paper-plane"></i> Enviar
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      
+      <div className="card" style={{ marginTop: '30px' }}>
+        <div className="card-header">
+          <h2>Histórico de Mensagens</h2>
+          <button 
+            className="btn btn-secondary"
+            onClick={carregarDados}
+            disabled={loading}
+          >
+            <i className="fas fa-sync-alt"></i> Atualizar
+          </button>
+        </div>
+        
+        <div style={{ overflowX: 'auto' }}>
+          <table>
+            <thead>
+              <tr>
+                <th>Data de Envio</th>
+                <th>Nome</th>
+                <th>Telefone</th>
+                <th>Valor</th>
+                <th>Vencimento</th>
+                <th>Status</th>
               </tr>
             </thead>
             <tbody>
