@@ -1,0 +1,15 @@
+# Configurações do Servidor
+PORT=5000
+NODE_ENV=development
+
+# Configurações do Bot
+PROCESSAR_INICIO=false
+API_KEY=3073908
+TELEFONE_ADMIN=5515988049936
+
+# Configurações de Conexão de DB (para futura implementação)
+# MONGODB_URI=mongodb://localhost:27017/sistema-cobranca
+
+# URLs permitidas para CORS
+FRONTEND_URL=http://localhost:3000
+RENDER_URL=https://sistema-cobranca-frontend.onrender.com

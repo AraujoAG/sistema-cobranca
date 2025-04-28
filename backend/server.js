@@ -10,17 +10,42 @@ dotenv.config();
 
 const app = express();
 
-// Configuração de CORS melhorada
+// Configurar EJS como view engine
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
+
+// Obter origens permitidas do ambiente
+const origensPermitidas = [
+  process.env.FRONTEND_URL || 'http://localhost:3000',
+  process.env.RENDER_URL || 'https://sistema-cobranca-frontend.onrender.com',
+  'http://localhost:5000' // Para desenvolvimento local
+];
+
+console.log('Origens permitidas CORS:', origensPermitidas);
+
+// Configuração CORS
 app.use(cors({
-  origin: ['https://sistema-cobranca-frontend.onrender.com', 'http://localhost:3000'],
+  origin: function(origin, callback) {
+    // Permite requisições sem origem (como mobile apps ou curl)
+    if (!origin) return callback(null, true);
+    
+    // Verifica se a origem está na lista permitida
+    if (origensPermitidas.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.warn(`Requisição de origem não permitida: ${origin}`);
+      callback(null, false);
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  credentials: true,
+  credentials: true, // Importante para permitir cookies
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
 // Middlewares
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Adicionar um log middleware para depuração
 app.use((req, res, next) => {
@@ -39,10 +64,14 @@ const ensureDirectoryExistence = (dirPath) => {
 const botDir = path.join(__dirname, 'bot');
 const controllersDir = path.join(__dirname, 'controllers');
 const routesDir = path.join(__dirname, 'routes');
+const viewsDir = path.join(__dirname, 'views');
+const publicDir = path.join(__dirname, 'public');
 
 ensureDirectoryExistence(botDir);
 ensureDirectoryExistence(controllersDir);
 ensureDirectoryExistence(routesDir);
+ensureDirectoryExistence(viewsDir);
+ensureDirectoryExistence(publicDir);
 
 // Criar arquivo boletos.xlsx se não existir
 const boletoFilePath = path.join(__dirname, 'bot', 'boletos.xlsx');
@@ -72,14 +101,89 @@ app.use('/api/clientes', clientesRoutes);
 app.use('/api/cobrancas', cobrancasRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 
-// Servir o frontend em produção
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../frontend/build')));
-  
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/build', 'index.html'));
-  });
-}
+// Rota para o dashboard web
+app.get('/', (req, res) => {
+  try {
+    const persistenceService = require('./bot/persistenceService');
+    const path = require('path');
+    const xlsx = require('xlsx');
+    
+    // Inicializa o serviço de persistência
+    persistenceService.initializeHistoricoFile();
+    
+    // Ler dados do Excel
+    const arquivoBoletos = path.join(__dirname, 'bot', 'boletos.xlsx');
+    const workbook = xlsx.readFile(arquivoBoletos);
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const boletos = xlsx.utils.sheet_to_json(sheet);
+    
+    // Obter estatísticas
+    const stats = persistenceService.obterEstatisticas();
+    
+    // Render da view dashboard
+    res.render('dashboard/index', { 
+      boletos, 
+      stats, 
+      whatsappStatus: 'Conectado',
+      persistenceService
+    });
+  } catch (error) {
+    console.error('Erro ao renderizar dashboard:', error);
+    res.status(500).send('Erro ao carregar dashboard: ' + error.message);
+  }
+});
+
+// Rota para disparar mensagens manualmente
+app.post('/disparar-mensagens', async (req, res) => {
+  try {
+    const processaBoletos = require('./bot/processaBoletos');
+    await processaBoletos();
+    res.redirect('/?success=true');
+  } catch (error) {
+    console.error('Erro ao disparar mensagens:', error);
+    res.redirect('/?error=true');
+  }
+});
+
+// Rota para adicionar boletos pela interface
+app.post('/boletos/adicionar', (req, res) => {
+  try {
+    const { nome, telefone, vencimento, valor } = req.body;
+    
+    // Formatar e validar os dados
+    if (!nome || !telefone || !vencimento || !valor) {
+      return res.redirect('/?error=true');
+    }
+    
+    // Adicionar boleto usando o controller
+    const clientesController = require('./controllers/clientesController');
+    
+    // Preparar o objeto de boleto
+    const novoBoleto = {
+      Nome: nome,
+      Telefone: telefone,
+      Vencimento: vencimento,
+      Valor: parseFloat(valor),
+      Status: 'Pendente'
+    };
+    
+    // Adicionar ao Excel (chamando a função diretamente)
+    clientesController.adicionarCliente({
+      body: novoBoleto
+    }, {
+      status: () => {
+        return {
+          json: () => res.redirect('/?success=true')
+        };
+      },
+      json: () => res.redirect('/?success=true')
+    });
+    
+  } catch (error) {
+    console.error('Erro ao adicionar boleto:', error);
+    res.redirect('/?error=true');
+  }
+});
 
 // Rota para exibir o QR code
 app.get('/qrcode', (req, res) => {

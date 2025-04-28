@@ -3,9 +3,9 @@ import React from 'react';
 
 function Footer() {
   return (
-    <footer className="footer">
-      Bot de cobrança - Copyright ©2025 Alta Linha Móveis. All rights reserved. Desenvolvido por Anderson Gabriel
-    </footer>
+    <div className="footer">
+      <p>© {new Date().getFullYear()} Alta Linha Móveis - Sistema de Cobranças v1.0</p>
+    </div>
   );
 }
 

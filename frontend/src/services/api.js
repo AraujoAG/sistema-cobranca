@@ -1,28 +1,33 @@
 // frontend/src/services/api.js
 import axios from 'axios';
 
-// Criando instância do axios com a URL correta
+// Obtém a URL da API do ambiente
+const API_URL = process.env.REACT_APP_API_URL || 'https://sistema-cobranca-backend.onrender.com/api';
+
+console.log('API URL configurada:', API_URL);
+
+// Criando instância do axios com a URL do .env
 const api = axios.create({
-  baseURL: 'https://sistema-cobranca-backend.onrender.com/api',
+  baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json'
   },
-  // Permite envio de credenciais (cookies)
-  withCredentials: true,
+  // Credenciais CORS apenas se necessário (pode causar problemas)
+  withCredentials: false,
   // Aumenta o timeout para aplicações hospedadas no Render (que podem demorar para "acordar")
-  timeout: 15000
+  timeout: 30000
 });
 
 // Adiciona interceptador para logar requisições (ajuda no debug)
 api.interceptors.request.use(config => {
-  console.log(`Fazendo requisição para: ${config.url}`);
+  console.log(`Fazendo requisição para: ${config.method.toUpperCase()} ${config.url}`);
   return config;
 });
 
 // Adiciona interceptador para tratar erros
 api.interceptors.response.use(
   response => {
-    console.log(`Resposta recebida de: ${response.config.url}`);
+    console.log(`Resposta recebida de: ${response.config.url} (${response.status})`);
     return response;
   },
   error => {
@@ -36,7 +41,12 @@ api.interceptors.response.use(
         headers: error.response.headers
       });
     } else if (error.request) {
-      console.error('Erro na requisição (sem resposta):', error.request);
+      console.error('Erro na requisição (sem resposta). O servidor pode estar offline ou dormindo.');
+      
+      // Informação especial para Render.com
+      if (API_URL.includes('render.com')) {
+        console.warn('DICA: Serviços gratuitos no Render.com adormecem após 15 minutos de inatividade. A primeira requisição pode demorar até 30 segundos.');
+      }
     }
     
     return Promise.reject(error);
