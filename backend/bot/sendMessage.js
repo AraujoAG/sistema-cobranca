@@ -1,108 +1,19 @@
-const wppconnect = require('@wppconnect-team/wppconnect');
+// backend/bot/sendMessage.js
+const axios = require('axios');
 
-// Variáveis globais
-let client = null;
-let clientReady = false;
+// Simulação de estado do cliente para compatibilidade com código existente
+let clientReady = true;
 
-// Função para inicializar o WhatsApp
+// Função para inicializar (mantida para compatibilidade com código existente)
 async function initializeWhatsApp() {
-  if (client) {
-    console.log("Cliente WhatsApp já inicializado.");
-    return client;
-  }
-
-  try {
-    console.log("Inicializando cliente WhatsApp...");
-    
-    // Configurações adicionais para ambiente de produção
-    const options = {
-      session: 'cobranca-bot',
-      headless: 'new', // Usa o novo modo headless
-      catchQR: (base64Qr, asciiQR) => {
-        console.log('QR CODE RECEBIDO:');
-        console.log(asciiQR);
-      },
-      statusFind: (statusSession, session) => {
-        console.log('Status da sessão:', statusSession);
-        // Quando o status for 'inChat' ou 'CONNECTED', o cliente está pronto
-        if (statusSession === 'inChat' || statusSession === 'CONNECTED') {
-          clientReady = true;
-        }
-      },
-      // Argumentos específicos para ambientes cloud como o Render
-      browserArgs: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--no-first-run',
-        '--no-zygote',
-        '--disable-gpu',
-        '--disable-infobars',
-        '--window-position=0,0',
-        '--ignore-certificate-errors',
-        '--ignore-certificate-errors-spki-list',
-        '--disable-extensions',
-        '--disable-web-security'
-      ],
-      puppeteerOptions: {
-        args: [
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage',
-          '--disable-accelerated-2d-canvas',
-          '--no-first-run',
-          '--no-zygote',
-          '--disable-gpu'
-        ],
-        headless: 'new',
-      }
-    };
-    
-    client = await wppconnect.create(options);
-    
-    console.log("✅ Cliente WhatsApp inicializado com sucesso!");
-    clientReady = true;
-    return client;
-  } catch (error) {
-    console.error("❌ Erro ao inicializar o cliente WhatsApp:", error);
-    throw error;
-  }
+  console.log("Cliente WhatsApp API inicializado...");
+  return true;
 }
 
-// Função para aguardar até que o WhatsApp esteja pronto
-async function waitForWhatsAppReady(maxWaitTime = 60000) {
-  const startTime = Date.now();
-  
-  while (!clientReady) {
-    // Verifica se excedeu o tempo máximo de espera
-    if (Date.now() - startTime > maxWaitTime) {
-      throw new Error("Tempo limite excedido ao aguardar WhatsApp ficar pronto");
-    }
-    console.log("⚠️ Aguardando WhatsApp ficar pronto...");
-    await new Promise(resolve => setTimeout(resolve, 2000)); // Aguardar 2 segundos
-  }
-  
-  console.log("✅ WhatsApp está pronto para enviar mensagens.");
-}
-
-// Função para enviar a mensagem
+// Função para enviar a mensagem usando CallMeBot API
 async function sendMessage(numero, mensagem) {
-  // Verifica se o cliente existe e está pronto
-  if (!client) {
-    try {
-      await initializeWhatsApp();
-    } catch (error) {
-      console.error("❌ Não foi possível inicializar o WhatsApp:", error);
-      return false;
-    }
-  }
-  
-  // Aguarda o WhatsApp estar pronto
   try {
-    await waitForWhatsAppReady();
-    
-    // Formata o número conforme necessário para o WPPConnect
+    // Formata o número conforme necessário
     let telefoneFormatado = numero.toString().trim();
     
     // Garante que o número comece com 55 (Brasil)
@@ -110,22 +21,41 @@ async function sendMessage(numero, mensagem) {
       telefoneFormatado = '55' + telefoneFormatado;
     }
     
-    console.log(`📤 Enviando mensagem para ${telefoneFormatado}: ${mensagem.substring(0, 30)}...`);
+    console.log(`📤 Preparando envio para ${telefoneFormatado}`);
     
-    // Envia a mensagem
-    const result = await client.sendText(`${telefoneFormatado}@c.us`, mensagem);
+    // IMPORTANTE: Você precisa registrar seu número no CallMeBot antes de usar
+    // Visite: https://www.callmebot.com/blog/free-api-whatsapp-messages/
     
-    if (result) {
+    // Codifica a mensagem para URL
+    const mensagemCodificada = encodeURIComponent(mensagem);
+    
+    // Substitua YOUR_API_KEY pela chave que você obteve do CallMeBot
+    // Você precisa obter uma API key registrando seu número no site da CallMeBot
+    const apiKey = '3073908'; // Substitua pela sua chave real
+    
+    // Cria a URL da API
+    const apiUrl = `https://api.callmebot.com/whatsapp.php?phone=${telefoneFormatado}&text=${mensagemCodificada}&apikey=${apiKey}`;
+    
+    // Faz a requisição HTTP
+    const response = await axios.get(apiUrl);
+    
+    // Verifica a resposta
+    if (response.status === 200) {
       console.log(`✅ Mensagem enviada com sucesso para ${telefoneFormatado}`);
       return true;
     } else {
-      console.error(`❌ Falha ao enviar mensagem para ${telefoneFormatado}`);
+      console.error(`❌ Falha ao enviar mensagem para ${telefoneFormatado}:`, response.data);
       return false;
     }
   } catch (err) {
-    console.error(`❌ Erro ao enviar mensagem para ${numero}:`, err);
+    console.error(`❌ Erro ao enviar mensagem para ${numero}:`, err.message);
     return false;
   }
+}
+
+// Função para aguardar (mantida para compatibilidade)
+async function waitForWhatsAppReady() {
+  return true; // Sempre pronto com a API
 }
 
 module.exports = {
