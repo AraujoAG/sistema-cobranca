@@ -164,7 +164,6 @@ function ClienteForm({ cliente, isEditing }) {
         </div>
         
         <div className="form-group">
-          <label htmlFor="Vencimento">Data de Vencimento</label><div className="form-group">
           <label htmlFor="Vencimento">Data de Vencimento</label>
           <input
             type="text"
