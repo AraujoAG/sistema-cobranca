@@ -13,10 +13,10 @@ const app = express();
 // Middlewares
 app.use(cors({
   origin: ['https://sistema-cobranca-frontend.onrender.com', 'http://localhost:3000'],
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
 // Garante que as pastas necessárias existam
 const ensureDirectoryExistence = (dirPath) => {

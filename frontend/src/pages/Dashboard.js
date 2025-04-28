@@ -19,16 +19,34 @@ function Dashboard() {
     carregarDados();
   }, []);
 
-  const carregarDados = async () => {
-    try {
-      const response = await api.get('/dashboard/resumo');
-      setResumo(response.data);
-      setLoading(false);
-    } catch (error) {
-      setErro('Erro ao carregar dados do dashboard');
-      setLoading(false);
-    }
-  };
+// No método carregarDados de Dashboard.js
+const carregarDados = async () => {
+  try {
+    setLoading(true);
+    console.log('Carregando dados do dashboard...');
+    
+    const response = await api.get('/dashboard/resumo');
+    console.log('Dados recebidos:', response.data);
+    
+    // Garantir que todos os campos existam para evitar erros de renderização
+    const dadosRecebidos = response.data || {};
+    
+    setResumo({
+      totalClientes: dadosRecebidos.totalClientes || 0,
+      boletosVencidos: dadosRecebidos.boletosVencidos || 0,
+      boletosAVencer: dadosRecebidos.boletosAVencer || 0,
+      valorTotal: dadosRecebidos.valorTotal || 0,
+      mensagensEnviadas: dadosRecebidos.mensagensEnviadas || 0,
+      ultimaExecucao: dadosRecebidos.ultimaExecucao || null,
+    });
+    
+    setLoading(false);
+  } catch (error) {
+    console.error('Erro ao carregar dados do dashboard:', error);
+    setErro('Erro ao carregar dados do dashboard. Tente novamente mais tarde.');
+    setLoading(false);
+  }
+};
 
   // Dados para o gráfico de pizza
   const statusBoletos = [

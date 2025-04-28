@@ -13,19 +13,43 @@ function Clientes() {
     carregarClientes();
   }, []);
 
-  const carregarClientes = async () => {
-    try {
-      setLoading(true);
-      setErro('');
-      const response = await api.get('/clientes');
+  // No método carregarClientes de Clientes.js
+const carregarClientes = async () => {
+  try {
+    setLoading(true);
+    setErro('');
+    console.log('Carregando lista de clientes...');
+    
+    const response = await api.get('/clientes');
+    console.log('Clientes recebidos:', response.data);
+    
+    if (Array.isArray(response.data)) {
       setClientes(response.data);
-      setLoading(false);
-    } catch (error) {
-      console.error('Erro ao carregar clientes:', error);
-      setErro('Erro ao carregar dados dos clientes');
-      setLoading(false);
+    } else {
+      console.error('Resposta não é um array:', response.data);
+      setClientes([]);
+      setErro('Formato de dados inválido recebido do servidor');
     }
-  };
+    
+    setLoading(false);
+  } catch (error) {
+    console.error('Erro ao carregar clientes:', error);
+    
+    let mensagemErro = 'Erro ao carregar dados dos clientes';
+    
+    if (error.response) {
+      mensagemErro += `: ${error.response.data.erro || error.response.status}`;
+    } else if (error.request) {
+      mensagemErro += ': Sem resposta do servidor';
+    } else {
+      mensagemErro += `: ${error.message}`;
+    }
+    
+    setErro(mensagemErro);
+    setClientes([]);
+    setLoading(false);
+  }
+};
 
   const confirmarRemocao = (cliente) => {
     setClienteParaRemover(cliente);
