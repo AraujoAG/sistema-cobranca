@@ -23,22 +23,11 @@ const origensPermitidas = [
 
 console.log('Origens permitidas CORS:', origensPermitidas);
 
-// Configuração CORS
+// Configuração CORS - Modificado para ser mais permissivo durante resolução de problemas
 app.use(cors({
-  origin: function(origin, callback) {
-    // Permite requisições sem origem (como mobile apps ou curl)
-    if (!origin) return callback(null, true);
-    
-    // Verifica se a origem está na lista permitida
-    if (origensPermitidas.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      console.warn(`Requisição de origem não permitida: ${origin}`);
-      callback(null, false);
-    }
-  },
+  origin: '*', // Temporariamente permita todas as origens para teste
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  credentials: true, // Importante para permitir cookies
+  credentials: true,
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
