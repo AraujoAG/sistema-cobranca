@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Cobranças</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; color: #333; }
+        h1, h2 { color: #333; }
+        .container { background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        .status, .stats, .actions, .boletos-lista, .add-boleto { margin-bottom: 30px; }
+        .stats p, .status p { margin: 5px 0; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background-color: #e9e9e9; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        .btn { padding: 10px 15px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; text-decoration: none; display: inline-block; }
+        .btn-danger { background-color: #dc3545; }
+        .btn:hover { opacity: 0.9; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; }
+        .form-group input[type="text"],
+        .form-group input[type="number"],
+        .form-group input[type="date"] {
+            width: calc(100% - 22px);
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .alert { padding: 15px; margin-bottom: 20px; border-radius: 4px; }
+        .alert-success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .alert-error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Dashboard de Cobranças</h1>
+
+        <% if (typeof success !== 'undefined' && success) { %>
+            <div class="alert alert-success">Operação realizada com sucesso!</div>
+        <% } %>
+        <% if (typeof error !== 'undefined' && error) { %>
+            <div class="alert alert-error">Ocorreu um erro na operação. <%= typeof message !== 'undefined' ? message : '' %></div>
+        <% } %>
+
+        <div class="status">
+            <h2>Status do Sistema</h2>
+            <p>Status do WhatsApp: <strong><%= typeof whatsappStatus !== 'undefined' ? whatsappStatus : 'Indisponível' %></strong></p>
+        </div>
+
+        <div class="stats">
+            <h2>Estatísticas de Envio</h2>
+            <% if (typeof stats !== 'undefined') { %>
+                <p>Total de Mensagens Enviadas com Sucesso (Histórico): <strong><%= stats.totalEnviadasComSucesso || 0 %></strong></p>
+                <p>Total de Falhas Registradas (Histórico): <strong><%= stats.totalFalhas || 0 %></strong></p>
+                <p>Envios com Sucesso Hoje: <strong><%= stats.enviosHojeComSucesso || 0 %></strong></p>
+                <p>Falhas Hoje: <strong><%= stats.falhasHoje || 0 %></strong></p>
+                <p>Última Execução do Processamento:
+                    <strong>
+                        <% if (stats.ultimoEnvio) { %>
+                            <%= new Date(stats.ultimoEnvio).toLocaleString('pt-BR') %>
+                        <% } else { %>
+                            Nenhuma execução registrada
+                        <% } %>
+                    </strong>
+                </p>
+                <% if (stats.statusContagem && Object.keys(stats.statusContagem).length > 0) { %>
+                    <p>Contagem por Status (Histórico):
+                        <% for(const statusItem in stats.statusContagem) { %>
+                            <span><%= statusItem %>: <%= stats.statusContagem[statusItem] %>; </span>
+                        <% } %>
+                    </p>
+                <% } %>
+            <% } else { %>
+                <p>Estatísticas indisponíveis.</p>
+            <% } %>
+        </div>
+
+        <div class="actions">
+            <h2>Ações</h2>
+            <form action="/disparar-mensagens" method="POST" style="display: inline;">
+                <button type="submit" class="btn">Disparar Todas as Cobranças Pendentes</button>
+            </form>
+            <p style="font-size: 0.9em; color: #666; margin-top: 5px;">
+                (Isso irá processar o arquivo <code>boletos.xlsx</code> e enviar mensagens para pendências conforme as regras.)
+            </p>
+        </div>
+
+        <div class="add-boleto">
+            <h2>Adicionar Novo Boleto</h2>
+            <p style="color: red; font-weight: bold;">Atenção: Adicionar boletos por aqui pode não funcionar corretamente no Render devido à forma como os arquivos são armazenados. Prefira usar o frontend React ou migrar o backend para um banco de dados.</p>
+            <form action="/boletos/adicionar" method="POST">
+                <div class="form-group">
+                    <label for="nome">Nome do Cliente:</label>
+                    <input type="text" id="nome" name="nome" required>
+                </div>
+                <div class="form-group">
+                    <label for="telefone">Telefone (Ex: 5515999999999):</label>
+                    <input type="text" id="telefone" name="telefone" required>
+                </div>
+                <div class="form-group">
+                    <label for="vencimento">Vencimento (DD/MM/AAAA):</label>
+                    <input type="text" id="vencimento" name="vencimento" placeholder="DD/MM/AAAA" required>
+                </div>
+                <div class="form-group">
+                    <label for="valor">Valor (Ex: 150.75):</label>
+                    <input type="number" id="valor" name="valor" step="0.01" required>
+                </div>
+                <button type="submit" class="btn">Adicionar Boleto</button>
+            </form>
+        </div>
+
+        <div class="boletos-lista">
+            <h2>Lista de Boletos (do arquivo <code>boletos.xlsx</code>)</h2>
+            <% if (typeof boletos !== 'undefined' && boletos.length > 0) { %>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nome</th>
+                            <th>Telefone</th>
+                            <th>Vencimento</th>
+                            <th>Valor</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% boletos.forEach(function(boleto) { %>
+                            <tr>
+                                <td><%= boleto.ID || '-' %></td>
+                                <td><%= boleto.Nome %></td>
+                                <td><%= boleto.Telefone %></td>
+                                <td><%= boleto.Vencimento %></td>
+                                <td>R$ <%= parseFloat(boleto.Valor).toFixed(2) %></td>
+                                <td><%= boleto.Status %></td>
+                            </tr>
+                        <% }); %>
+                    </tbody>
+                </table>
+            <% } else { %>
+                <p>Nenhum boleto para exibir ou o arquivo <code>boletos.xlsx</code> está vazio/não foi carregado.</p>
+                <p>Lembre-se que, no Render, este arquivo é efêmero se não for parte do seu deploy e não for um banco de dados.</p>
+            <% } %>
+        </div>
+    </div>
+
+    <script>
+        // Script para exibir mensagens de sucesso/erro da URL
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const success = urlParams.get('success');
+            const error = urlParams.get('error');
+            const message = urlParams.get('message');
+
+            if (success) {
+                const successDiv = document.createElement('div');
+                successDiv.className = 'alert alert-success';
+                successDiv.textContent = 'Operação realizada com sucesso!' + (message ? ` (${decodeURIComponent(message)})` : '');
+                document.querySelector('.container').prepend(successDiv);
+                // Limpa os parâmetros da URL para não mostrar a mensagem novamente no refresh
+                window.history.replaceState({}, document.title, "/");
+            }
+            if (error) {
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'alert alert-error';
+                errorDiv.textContent = 'Ocorreu um erro na operação.' + (message ? ` (${decodeURIComponent(message)})` : '');
+                document.querySelector('.container').prepend(errorDiv);
+                window.history.replaceState({}, document.title, "/");
+            }
+        });
+    </script>
+</body>
+</html>
