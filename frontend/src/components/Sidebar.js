@@ -1,33 +1,39 @@
 // frontend/src/components/Sidebar.js
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import '../styles/Sidebar.css';
+import '../styles/Sidebar.css'; // Certifique-se que este CSS existe e está correto
+
+// ATENÇÃO: Para os ícones (fas fa-chart-line, etc.) funcionarem,
+// você precisa ter o Font Awesome configurado no seu projeto.
+// Isso pode ser via CDN no public/index.html ou instalando pacotes como @fortawesome/react-fontawesome.
 
 function Sidebar() {
   const location = useLocation();
-  const [collapsed, setCollapsed] = useState(false);
-  
+  const [collapsed, setCollapsed] = useState(false); // Inicia não colapsado
+
   const toggleSidebar = () => {
     setCollapsed(!collapsed);
+    // Ajusta a margem do conteúdo principal se necessário (pode ser feito via CSS também)
+    // document.documentElement.style.setProperty('--current-sidebar-width', collapsed ? 'var(--sidebar-width)' : 'var(--sidebar-width-collapsed)');
   };
-  
+
   return (
     <div className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
       <div className="sidebar-header">
         <h3>
-          <img 
+          <img
             src="https://altalinhamoveis.com.br/new/wp-content/uploads/2023/11/logotipo-alta-linha-moveis-planejados-e-decoracoes-sorocaba-2.png"
-            alt="Alta Linha Móveis"
+            alt="Alta Linha Móveis Logo"
             className="sidebar-logo"
           />
-          {!collapsed && <span className="sidebar-title">Sistema de Cobranças</span>}
+          {!collapsed && <span className="sidebar-title">Cobranças</span>}
         </h3>
-        <button className="toggle-btn" onClick={toggleSidebar}>
-          <i className={`fas ${collapsed ? 'fa-angle-right' : 'fa-angle-left'}`}></i>
+        <button className="toggle-btn" onClick={toggleSidebar} aria-label="Toggle Sidebar">
+          <i className={`fas ${collapsed ? 'fa-angle-double-right' : 'fa-angle-double-left'}`}></i>
         </button>
       </div>
-      
-      <div className="sidebar-menu">
+
+      <nav className="sidebar-menu">
         <ul>
           <li className={location.pathname === '/' ? 'active' : ''}>
             <Link to="/">
@@ -35,7 +41,7 @@ function Sidebar() {
               {!collapsed && <span>Dashboard</span>}
             </Link>
           </li>
-          <li className={location.pathname === '/clientes' ? 'active' : ''}>
+          <li className={location.pathname === '/clientes' || location.pathname.startsWith('/editar-cliente') ? 'active' : ''}>
             <Link to="/clientes">
               <i className="fas fa-users"></i>
               {!collapsed && <span>Clientes</span>}
@@ -54,13 +60,14 @@ function Sidebar() {
             </Link>
           </li>
         </ul>
-      </div>
-      
+      </nav>
+
       <div className="sidebar-footer">
         <p>
           <i className="fas fa-circle status-indicator online"></i>
           {!collapsed && <span>Sistema Online</span>}
         </p>
+        {/* Você pode adicionar um status real aqui se tiver um endpoint de health check */}
       </div>
     </div>
   );

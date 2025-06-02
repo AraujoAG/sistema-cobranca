@@ -1,109 +1,115 @@
 // backend/bot/sendMessage.js
 const axios = require('axios');
 
-// Simulação de estado do cliente para compatibilidade com código existente
-let clientReady = true;
-
-// Função para inicializar (mantida para compatibilidade com código existente)
+/**
+ * Simula a inicialização do WhatsApp. Para a API CallMeBot,
+ * não há uma sessão persistente para inicializar da mesma forma que com @wppconnect.
+ * Esta função pode ser usada para verificações preliminares, se necessário.
+ */
 async function initializeWhatsApp() {
-  console.log("Cliente WhatsApp API inicializado...");
-  return true;
+  console.log("Verificando configuração para envio de mensagens via API CallMeBot...");
+  if (!process.env.CALLMEBOT_API_KEY) {
+    console.warn('ATENÇÃO: A variável de ambiente CALLMEBOT_API_KEY não está definida. As mensagens não serão enviadas.');
+    return false;
+  }
+  console.log("Configuração da API CallMeBot verificada.");
+  return true; // Indica que a "inicialização" (verificação) foi bem-sucedida.
 }
 
-// Função para enviar a mensagem usando CallMeBot API
+/**
+ * Envia uma mensagem via API CallMeBot.
+ * @param {string} numero - O número de telefone do destinatário (ex: 5515999999999).
+ * @param {string} mensagem - A mensagem a ser enviada.
+ * @returns {Promise<boolean>} True se a mensagem foi enviada/encaminhada com sucesso, false caso contrário.
+ */
 async function sendMessage(numero, mensagem) {
-  try {
-    // Formata o número conforme necessário
-    let telefoneFormatado = numero.toString().trim();
-    
-    // Remove qualquer caractere não numérico
-    telefoneFormatado = telefoneFormatado.replace(/\D/g, '');
-    
-    // Garante que o número comece com 55 (Brasil)
-    if (!telefoneFormatado.startsWith('55')) {
-      telefoneFormatado = '55' + telefoneFormatado;
+  const apiKey = process.env.CALLMEBOT_API_KEY;
+
+  if (!apiKey) {
+    console.error('ERRO FATAL: CALLMEBOT_API_KEY não está definida. Não é possível enviar a mensagem.');
+    return false;
+  }
+
+  let telefoneFormatado = numero.toString().trim().replace(/\D/g, '');
+  if (!telefoneFormatado.startsWith('55')) {
+    // Adiciona o DDI do Brasil se não estiver presente e tiver um tamanho compatível.
+    // Ajuste essa lógica se precisar de DDIs de outros países.
+    if (telefoneFormatado.length >= 10 && telefoneFormatado.length <= 11) { // Comum para números brasileiros sem 55
+        telefoneFormatado = '55' + telefoneFormatado;
+    } else if (telefoneFormatado.length === 12 && telefoneFormatado.startsWith('0')) { // Formato como 015...
+        telefoneFormatado = '55' + telefoneFormatado.substring(1);
     }
-    
-    console.log(`📤 Preparando envio para ${telefoneFormatado}`);
-    
-    // Codifica a mensagem para URL
-    const mensagemCodificada = encodeURIComponent(mensagem);
-    
-    // API key confirmada para o número 5515988049936
-    const apiKey = '3073908';
-    
-    // Cria a URL da API
-    const apiUrl = `https://api.callmebot.com/whatsapp.php?phone=${telefoneFormatado}&text=${mensagemCodificada}&apikey=${apiKey}`;
-    
-    console.log('Enviando requisição para CallMeBot API...');
-    
-    // Faz a requisição HTTP com timeout e validação de status
+    // Adicione mais validações de formato se necessário
+  }
+
+
+  if (telefoneFormatado.length < 12 || telefoneFormatado.length > 13) { // Ex: 5515999999999 (13) ou 551533333333 (12)
+      console.error(`Número de telefone '${numero}' (formatado para '${telefoneFormatado}') parece inválido para envio.`);
+      return false;
+  }
+
+
+  console.log(`📤 Preparando envio para ${telefoneFormatado}`);
+  const mensagemCodificada = encodeURIComponent(mensagem);
+
+  const apiUrl = `https://api.callmebot.com/whatsapp.php?phone=${telefoneFormatado}&text=${mensagemCodificada}&apikey=${apiKey}`;
+
+  try {
+    console.log(`Enviando requisição para CallMeBot API para o número ${telefoneFormatado}...`);
     const response = await axios.get(apiUrl, {
-      timeout: 15000, // 15 segundos de timeout
+      timeout: 20000, // Aumentado para 20 segundos
       validateStatus: function (status) {
-        return status < 500; // Aceita status codes menores que 500
+        return status < 500; // Aceita códigos de status abaixo de 500 (erros do cliente ou sucesso)
       }
     });
-    
-    // Log detalhado da resposta para diagnóstico
-    console.log(`Resposta da API - Status: ${response.status}`);
-    if (response.data) {
-      console.log(`Conteúdo da resposta: ${typeof response.data === 'string' ? response.data : JSON.stringify(response.data)}`);
-    }
-    
-    // Verifica a resposta
+
+    console.log(`Resposta da API - Status: ${response.status} para ${telefoneFormatado}`);
+    const responseDataString = (response.data && typeof response.data !== 'string') ? JSON.stringify(response.data) : response.data;
+    console.log(`Conteúdo da resposta: ${responseDataString}`);
+
     if (response.status === 200) {
-      // Mesmo com status 200, a API pode retornar mensagens de erro no corpo
-      if (response.data && typeof response.data === 'string') {
-        if (response.data.includes('ERROR') || 
-            response.data.includes('Error') || 
-            response.data.includes('error')) {
-          console.error(`⚠️ Erro retornado pela API: ${response.data}`);
+      // A API CallMeBot retorna strings no corpo da resposta para indicar sucesso ou erro
+      if (responseDataString) {
+        if (responseDataString.toLowerCase().includes('error') || responseDataString.toLowerCase().includes('must add the number to the bot first')) {
+          console.error(`⚠️ Erro retornado pela API CallMeBot para ${telefoneFormatado}: ${responseDataString}`);
           return false;
         }
-        
-        if (response.data.includes('Message Sent') || 
-            response.data.includes('Message queued')) {
-          console.log(`✅ Mensagem enviada com sucesso para ${telefoneFormatado}`);
+        if (responseDataString.includes('Message Sent') || responseDataString.includes('Message queued')) {
+          console.log(`✅ Mensagem enviada/encaminhada com sucesso para ${telefoneFormatado}`);
           return true;
         }
       }
-      
-      // Se chegou aqui, assumimos que deu certo (status 200 sem erro explícito no corpo)
-      console.log(`✅ Mensagem provavelmente enviada com sucesso para ${telefoneFormatado}`);
-      return true;
+      // Se chegou aqui com status 200 mas a resposta não foi clara, pode ser um problema.
+      console.warn(`Resposta ambígua da API CallMeBot para ${telefoneFormatado}, mas status 200. Conteúdo: ${responseDataString}`);
+      return false; // Mais seguro assumir falha se a confirmação não for explícita
     } else {
-      console.error(`❌ Falha ao enviar mensagem para ${telefoneFormatado}: HTTP ${response.status}`);
-      console.error(`Detalhes da falha: ${response.data}`);
+      console.error(`❌ Falha na requisição HTTP para ${telefoneFormatado}: Status ${response.status}`);
+      console.error(`Detalhes da falha: ${responseDataString}`);
       return false;
     }
   } catch (err) {
-    console.error(`❌ Erro ao enviar mensagem para ${numero}:`, err.message);
-    
-    // Log detalhado para diferentes tipos de erro axios
+    console.error(`❌ Erro crítico ao tentar enviar mensagem para ${telefoneFormatado}:`, err.message);
     if (err.response) {
-      // A API respondeu com status de erro
-      console.error('Detalhes do erro da API:', err.response.status, err.response.data);
+      console.error('Detalhes do erro Axios (response):', err.response.status, err.response.data);
     } else if (err.request) {
-      // A requisição foi feita mas não houve resposta
-      console.error('Sem resposta da API. Possível timeout ou problema de rede');
+      console.error('Detalhes do erro Axios (request): Nenhuma resposta recebida. Timeout ou problema de rede/API.');
     } else {
-      // Erro na configuração da requisição
-      console.error('Erro na configuração da requisição:', err.message);
+      console.error('Detalhes do erro Axios (config):', err.message);
     }
-    
-    // Verifica se é um erro de timeout
     if (err.code === 'ECONNABORTED') {
-      console.error('A requisição excedeu o tempo limite (timeout)');
+      console.error('A requisição para CallMeBot API excedeu o tempo limite (timeout).');
     }
-    
     return false;
   }
 }
 
-// Função para aguardar (mantida para compatibilidade)
+/**
+ * Simula a espera pela prontidão do WhatsApp. Para a API CallMeBot,
+ * não há um estado de "pronto" da mesma forma que com @wppconnect.
+ */
 async function waitForWhatsAppReady() {
-  return true; // Sempre pronto com a API
+  console.log("API CallMeBot está sempre 'pronta' se a chave API Key estiver correta e o serviço online.");
+  return true;
 }
 
 module.exports = {

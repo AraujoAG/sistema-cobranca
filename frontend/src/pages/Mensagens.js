@@ -1,356 +1,275 @@
 // frontend/src/pages/Mensagens.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
 
 function Mensagens() {
   const [clientes, setClientes] = useState([]);
   const [historico, setHistorico] = useState([]);
-  const [clientesSelecionados, setClientesSelecionados] = useState([]);
+  const [clientesSelecionados, setClientesSelecionados] = useState(new Set()); // Usar Set para melhor performance na seleção
   const [loading, setLoading] = useState(true);
   const [enviando, setEnviando] = useState(false);
-  const [erro, setErro] = useState('');
-  const [sucesso, setSucesso] = useState('');
+  const [error, setError] = useState(''); // Renomeado
+  const [success, setSuccess] = useState(''); // Renomeado
+
+  const carregarDados = useCallback(async (showLoading = true) => {
+    if (showLoading) setLoading(true);
+    setError('');
+    setSuccess(''); // Limpa mensagens ao recarregar
+    console.log('Carregando dados para a página de Mensagens...');
+
+    try {
+      // Opcional: Teste de conexão com o backend
+      // await api.get('/test');
+      // console.log('Teste de conexão com backend OK para Mensagens.');
+
+      const [clientesRes, historicoRes] = await Promise.all([
+        api.get('/clientes'),
+        api.get('/cobrancas/historico')
+      ]);
+
+      console.log('Clientes carregados:', clientesRes.data);
+      setClientes(Array.isArray(clientesRes.data) ? clientesRes.data : []);
+
+      console.log('Histórico carregado:', historicoRes.data);
+      // O histórico já vem como um array de mensagens, não precisa de .mensagensEnviadas
+      setHistorico(Array.isArray(historicoRes.data) ? historicoRes.data.slice().reverse() : []);
+
+
+    } catch (apiError) {
+      console.error('Erro ao carregar dados para Mensagens:', apiError);
+      const errorMsg = apiError.response?.data?.erro || apiError.message || 'Erro desconhecido ao carregar dados.';
+      setError(`Falha ao carregar dados: ${errorMsg}`);
+      setClientes([]);
+      setHistorico([]);
+    } finally {
+      if (showLoading) setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     carregarDados();
-  }, []);
+  }, [carregarDados]);
 
-  const carregarDados = async () => {
-    try {
-      setLoading(true);
-      setErro('');
-      console.log('Carregando dados de mensagens...');
-      
-      // Teste da conexão com o backend
-      try {
-        const testResponse = await api.get('/test');
-        console.log('Teste de conexão bem-sucedido:', testResponse.data);
-      } catch (testError) {
-        console.error('Erro no teste de conexão:', testError);
-        setErro('Erro na conexão com o servidor. Verifique se o backend está online.');
-        setLoading(false);
-        return;
+  const handleSelecaoCliente = (clienteId) => {
+    setClientesSelecionados(prevSelecionados => {
+      const novosSelecionados = new Set(prevSelecionados);
+      if (novosSelecionados.has(clienteId)) {
+        novosSelecionados.delete(clienteId);
+      } else {
+        novosSelecionados.add(clienteId);
       }
-      
-      // Tenta carregar clientes
-      let clientesData = [];
-      try {
-        console.log('Carregando clientes...');
-        const clientesRes = await api.get('/clientes');
-        clientesData = Array.isArray(clientesRes.data) ? clientesRes.data : [];
-        console.log(`${clientesData.length} clientes carregados`);
-      } catch (clientesError) {
-        console.error('Erro ao carregar clientes:', clientesError);
-        setErro(`Erro ao carregar clientes: ${clientesError.message}`);
-      }
-      
-      // Tenta carregar histórico
-      let historicoData = [];
-      try {
-        console.log('Carregando histórico...');
-        const historicoRes = await api.get('/cobrancas/historico');
-        historicoData = Array.isArray(historicoRes.data) ? historicoRes.data : [];
-        console.log(`${historicoData.length} registros de histórico carregados`);
-      } catch (historicoError) {
-        console.error('Erro ao carregar histórico:', historicoError);
-        
-        // Não sobrescreve o erro anterior se houver
-        if (!erro) {
-          setErro(`Erro ao carregar histórico: ${historicoError.message}`);
-        }
-      }
-      
-      setClientes(clientesData);
-      setHistorico(historicoData);
-      setLoading(false);
-    } catch (error) {
-      console.error('Erro geral ao carregar dados:', error);
-      setErro(`Erro ao carregar dados: ${error.message}`);
-      setLoading(false);
-    }
+      return novosSelecionados;
+    });
   };
 
-  const handleSelecaoCliente = (event, clienteId) => {
+  const handleSelecionarTodos = (event) => {
     if (event.target.checked) {
-      setClientesSelecionados([...clientesSelecionados, clienteId]);
+      setClientesSelecionados(new Set(clientes.map(cliente => cliente.ID)));
     } else {
-      setClientesSelecionados(clientesSelecionados.filter(id => id !== clienteId));
+      setClientesSelecionados(new Set());
     }
   };
 
-  const selecionarTodos = (event) => {
-    if (event.target.checked) {
-      setClientesSelecionados(clientes.map(cliente => cliente.ID));
+  const dispararMensagemIndividual = async (clienteId) => {
+    setEnviando(true);
+    setError('');
+    setSuccess('');
+    console.log('Enviando mensagem individual para cliente ID:', clienteId);
+
+    try {
+      const response = await api.post('/cobrancas/disparar-individual', { id: clienteId });
+      setSuccess(response.data?.mensagem || `Operação para cliente ${clienteId} concluída.`);
+      await carregarDados(false); // Recarrega sem mostrar loading principal
+    } catch (apiError) {
+      console.error(`Erro ao enviar mensagem individual para ID ${clienteId}:`, apiError);
+      const errorMsg = apiError.response?.data?.erro || apiError.response?.data?.detalhes || apiError.message || 'Erro desconhecido.';
+      setError(`Falha no envio para ID ${clienteId}: ${errorMsg}`);
+    } finally {
+      setEnviando(false);
+    }
+  };
+
+  const dispararMensagensSelecionadasOuTodas = async () => {
+    setEnviando(true);
+    setError('');
+    setSuccess('');
+
+    const idsParaEnviar = Array.from(clientesSelecionados);
+
+    if (idsParaEnviar.length === 0) {
+      console.log('Disparando para TODOS os clientes (via /cobrancas/disparar)');
+      try {
+        const response = await api.post('/cobrancas/disparar'); // Endpoint para processar todos
+        setSuccess(response.data?.mensagem || 'Processo de cobrança para todos iniciado.');
+      } catch (apiError) {
+        console.error('Erro ao disparar para todos os clientes:', apiError);
+        const errorMsg = apiError.response?.data?.erro || apiError.message || 'Erro desconhecido.';
+        setError(`Falha ao iniciar cobrança para todos: ${errorMsg}`);
+      }
     } else {
-      setClientesSelecionados([]);
+      console.log(`Disparando para ${idsParaEnviar.length} clientes selecionados...`);
+      let sucessoCount = 0;
+      let falhaCount = 0;
+      for (const id of idsParaEnviar) {
+        try {
+          await api.post('/cobrancas/disparar-individual', { id });
+          sucessoCount++;
+        } catch (apiError) {
+          falhaCount++;
+          console.error(`Erro no envio individual (em lote) para ID ${id}:`, apiError.message);
+        }
+        // Opcional: pequeno delay para não sobrecarregar
+        // await new Promise(resolve => setTimeout(resolve, 200));
+      }
+      setSuccess(`${sucessoCount} mensagens iniciadas com sucesso. ${falhaCount} falhas.`);
     }
+    setClientesSelecionados(new Set()); // Limpa seleção
+    await carregarDados(false); // Recarrega sem mostrar loading principal
+    setEnviando(false);
   };
 
-  const dispararMensagemIndividual = async (id) => {
+  const formatarDataHora = (dataString) => {
+    if (!dataString) return '-';
     try {
-      setEnviando(true);
-      setSucesso('');
-      setErro('');
-      
-      console.log('Enviando mensagem para cliente ID:', id);
-      
-      const response = await api.post('/cobrancas/disparar-individual', { id });
-      
-      // Verificar resposta
-      if (response.data && response.data.mensagem) {
-        setSucesso(`Mensagem enviada com sucesso! ${response.data.tentativas > 1 ? `(${response.data.tentativas} tentativas)` : ''}`);
-      } else {
-        console.warn('Resposta inesperada:', response);
-        setSucesso('Operação concluída, mas com resposta inesperada do servidor');
-      }
-      
-      setEnviando(false);
-      
-      // Recarrega o histórico
-      try {
-        const historicoRes = await api.get('/cobrancas/historico');
-        if (Array.isArray(historicoRes.data)) {
-          setHistorico(historicoRes.data);
-        }
-      } catch (historicoError) {
-        console.error('Erro ao recarregar histórico:', historicoError);
-      }
-    } catch (error) {
-      console.error('Erro completo:', error);
-      
-      let mensagemErro = 'Erro ao enviar mensagem';
-      
-      // Extrair detalhes do erro se disponíveis
-      if (error.response) {
-        // O servidor respondeu com status de erro
-        const { data, status } = error.response;
-        mensagemErro = `Erro ${status}: ${data.erro || 'Falha na requisição'}`;
-        
-        if (data.detalhes) {
-          mensagemErro += ` - ${data.detalhes}`;
-        }
-      } else if (error.request) {
-        // A requisição foi feita mas não houve resposta
-        mensagemErro = 'Sem resposta do servidor. Verifique sua conexão de rede.';
-      } else {
-        // Erro na configuração da requisição
-        mensagemErro = `Erro: ${error.message}`;
-      }
-      
-      setErro(mensagemErro);
-      setEnviando(false);
-    }
-  };
-
-  const dispararMensagens = async () => {
-    try {
-      setEnviando(true);
-      setSucesso('');
-      setErro('');
-      
-      console.log('Iniciando disparo de mensagens...');
-      console.log('Clientes selecionados:', clientesSelecionados);
-      
-      if (clientesSelecionados.length === 0) {
-        // Dispara para todos
-        console.log('Disparando para todos os clientes');
-        const response = await api.post('/cobrancas/disparar');
-        console.log('Resposta do disparo geral:', response.data);
-        setSucesso('Processo de cobrança iniciado para todos os clientes!');
-      } else {
-        // Dispara individualmente para cada selecionado
-        console.log(`Disparando para ${clientesSelecionados.length} clientes selecionados`);
-        
-        // Envio sequencial para evitar sobrecarga
-        let sucessoCount = 0;
-        let falhaCount = 0;
-        
-        for (const id of clientesSelecionados) {
-          try {
-            console.log(`Enviando para cliente ID: ${id}`);
-            await api.post('/cobrancas/disparar-individual', { id });
-            sucessoCount++;
-          } catch (error) {
-            console.error(`Erro no envio para ID ${id}:`, error);
-            falhaCount++;
-          }
-          
-          // Pequeno delay entre requisições para evitar sobrecarga
-          await new Promise(resolve => setTimeout(resolve, 500));
-        }
-        
-        setSucesso(`Mensagens enviadas: ${sucessoCount} com sucesso, ${falhaCount} com falha.`);
-      }
-      
-      setEnviando(false);
-      
-      // Recarrega o histórico
-      try {
-        console.log('Recarregando histórico...');
-        const historicoRes = await api.get('/cobrancas/historico');
-        if (Array.isArray(historicoRes.data)) {
-          setHistorico(historicoRes.data);
-        } else {
-          console.warn('Formato de resposta inválido para histórico:', historicoRes.data);
-        }
-      } catch (historicoError) {
-        console.error('Erro ao recarregar histórico:', historicoError);
-      }
-      
-      // Limpa seleção
-      setClientesSelecionados([]);
-    } catch (error) {
-      console.error('Erro completo:', error);
-      
-      let mensagemErro = 'Erro ao enviar mensagens';
-      
-      if (error.response) {
-        mensagemErro = `Erro ${error.response.status}: ${error.response.data.erro || 'Falha na requisição'}`;
-      } else if (error.request) {
-        mensagemErro = 'Sem resposta do servidor. Verifique sua conexão de rede.';
-      } else {
-        mensagemErro = `Erro: ${error.message}`;
-      }
-      
-      setErro(mensagemErro);
-      setEnviando(false);
-    }
-  };
-
-  const formatarData = (dataString) => {
-    try {
-      return new Date(dataString).toLocaleString('pt-BR');
+      return new Date(dataString).toLocaleString('pt-BR', {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+      });
     } catch {
-      return dataString || 'Data inválida';
+      return dataString; // Retorna a string original se a data for inválida
     }
   };
+
+  const formatarValorBR = (valor) => {
+    const numero = parseFloat(valor);
+    if (isNaN(numero)) return 'R$ -';
+    return numero.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  };
+
 
   if (loading) {
-    return <div className="loader"></div>;
+    return <div className="loader" aria-label="Carregando dados de mensagens"></div>;
   }
 
   return (
     <div>
-      <h1>Disparar Mensagens</h1>
-      
-      {erro && <div className="alert alert-danger">{erro}</div>}
-      {sucesso && <div className="alert alert-success">{sucesso}</div>}
-      
+      <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <h1>Disparar Mensagens de Cobrança</h1>
+        <button
+            className="btn btn-secondary"
+            onClick={() => carregarDados(true)} // Força o loading ao atualizar manualmente
+            disabled={loading || enviando}
+          >
+            <i className="fas fa-sync-alt"></i> Atualizar Dados
+          </button>
+      </div>
+
+      {error && <div className="alert alert-danger" role="alert">{error}</div>}
+      {success && <div className="alert alert-success" role="alert">{success}</div>}
+
       <div className="card">
         <div className="card-header">
-          <h2>Clientes Disponíveis</h2>
-          <button 
+          <h2>Selecionar Clientes para Envio</h2>
+          <button
             className="btn btn-primary"
-            onClick={dispararMensagens}
-            disabled={enviando}
+            onClick={dispararMensagensSelecionadasOuTodas}
+            disabled={enviando || clientes.length === 0}
           >
-            {enviando ? 'Enviando...' : 'Disparar Mensagens'}
-            {clientesSelecionados.length > 0 ? ` (${clientesSelecionados.length})` : ' (Todos)'}
+            {enviando ? 'Enviando...' :
+             (clientesSelecionados.size > 0 ? `Disparar para ${clientesSelecionados.size} Selecionados` : 'Disparar para Todos Pendentes (Backend)')}
           </button>
         </div>
-        
-        <div style={{ overflowX: 'auto' }}>
+
+        {clientes.length === 0 && !loading ? (
+           <p style={{ padding: '20px', textAlign: 'center' }}>Nenhum cliente encontrado para enviar mensagens.</p>
+        ) : (
+        <div style={{ overflowX: 'auto', maxHeight: '400px' }}>
           <table>
             <thead>
               <tr>
                 <th>
-                  <input 
-                    type="checkbox" 
-                    onChange={selecionarTodos}
-                    checked={clientesSelecionados.length === clientes.length && clientes.length > 0}
+                  <input
+                    type="checkbox"
+                    onChange={handleSelecionarTodos}
+                    checked={clientes.length > 0 && clientesSelecionados.size === clientes.length}
+                    disabled={clientes.length === 0}
                   />
                 </th>
                 <th>Nome</th>
                 <th>Telefone</th>
                 <th>Vencimento</th>
-                <th>Valor</th>
-                <th>Ações</th>
+                <th>Status Boleto</th>
+                <th>Ação Individual</th>
               </tr>
             </thead>
             <tbody>
-              {clientes.length === 0 ? (
-                <tr>
-                  <td colSpan="6" style={{ textAlign: 'center' }}>Nenhum cliente cadastrado</td>
+              {clientes.map(cliente => (
+                <tr key={cliente.ID}>
+                  <td>
+                    <input
+                      type="checkbox"
+                      checked={clientesSelecionados.has(cliente.ID)}
+                      onChange={() => handleSelecaoCliente(cliente.ID)}
+                    />
+                  </td>
+                  <td>{cliente.Nome}</td>
+                  <td>{cliente.Telefone}</td>
+                  <td>{cliente.Vencimento}</td>
+                  <td>{cliente.Status}</td>
+                  <td>
+                    <button
+                      className="btn btn-success btn-sm"
+                      onClick={() => dispararMensagemIndividual(cliente.ID)}
+                      disabled={enviando}
+                      title="Enviar mensagem apenas para este cliente"
+                    >
+                      <i className="fas fa-paper-plane"></i> Enviar
+                    </button>
+                  </td>
                 </tr>
-              ) : (
-                clientes.map(cliente => (
-                  <tr key={cliente.ID}>
-                    <td>
-                      <input 
-                        type="checkbox"
-                        checked={clientesSelecionados.includes(cliente.ID)}
-                        onChange={(e) => handleSelecaoCliente(e, cliente.ID)}
-                      />
-                    </td>
-                    <td>{cliente.Nome}</td>
-                    <td>{cliente.Telefone}</td>
-                    <td>{cliente.Vencimento}</td>
-                    <td>R$ {parseFloat(cliente.Valor).toFixed(2)}</td>
-                    <td>
-                      <button 
-                        className="btn btn-success btn-sm"
-                        onClick={() => dispararMensagemIndividual(cliente.ID)}
-                        disabled={enviando}
-                      >
-                        <i className="fas fa-paper-plane"></i> Enviar
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
+              ))}
             </tbody>
           </table>
         </div>
+        )}
       </div>
-      
+
       <div className="card" style={{ marginTop: '30px' }}>
-        <div className="card-header">
-          <h2>Histórico de Mensagens</h2>
-          <button 
-            className="btn btn-secondary"
-            onClick={carregarDados}
-            disabled={loading}
-          >
-            <i className="fas fa-sync-alt"></i> Atualizar
-          </button>
-        </div>
-        
-        <div style={{ overflowX: 'auto' }}>
+        <h2>Histórico de Mensagens Enviadas</h2>
+        {historico.length === 0 && !loading ? (
+           <p style={{ padding: '20px', textAlign: 'center' }}>Nenhum histórico de mensagens encontrado.</p>
+        ) : (
+        <div style={{ overflowX: 'auto', maxHeight: '500px' }}>
           <table>
             <thead>
               <tr>
-                <th>Data de Envio</th>
+                <th>Data Envio</th>
                 <th>Nome</th>
                 <th>Telefone</th>
                 <th>Valor</th>
-                <th>Vencimento</th>
-                <th>Status</th>
+                <th>Vencimento Boleto</th>
+                <th>Status Envio</th>
               </tr>
             </thead>
             <tbody>
-              {historico.length === 0 ? (
-                <tr>
-                  <td colSpan="6" style={{ textAlign: 'center' }}>Nenhuma mensagem enviada</td>
+              {historico.map(mensagem => (
+                <tr key={mensagem.id}>
+                  <td>{formatarDataHora(mensagem.dataEnvio)}</td>
+                  <td>{mensagem.nome}</td>
+                  <td>{mensagem.telefone}</td>
+                  <td>{formatarValorBR(mensagem.valor)}</td>
+                  <td>{mensagem.vencimento}</td>
+                  <td>
+                    <span className={`status-envio-${(mensagem.status || 'desconhecido').toLowerCase()}`}>
+                      {mensagem.status === 'enviado' ? '✅ Enviado' : `❌ ${mensagem.status || 'Falha'}`}
+                    </span>
+                  </td>
                 </tr>
-              ) : (
-                historico.slice().reverse().map(mensagem => (
-                  <tr key={mensagem.id}>
-                    <td>{formatarData(mensagem.dataEnvio)}</td>
-                    <td>{mensagem.nome}</td>
-                    <td>{mensagem.telefone}</td>
-                    <td>R$ {parseFloat(mensagem.valor).toFixed(2)}</td>
-                    <td>{mensagem.vencimento}</td>
-                    <td>
-                      <span className={mensagem.status === 'enviado' ? 'text-success' : 'text-danger'}>
-                        {mensagem.status === 'enviado' ? '✅ Enviado' : '❌ Falha'}
-                      </span>
-                    </td>
-                  </tr>
-                ))
-              )}
+              ))}
             </tbody>
           </table>
         </div>
+        )}
       </div>
     </div>
   );

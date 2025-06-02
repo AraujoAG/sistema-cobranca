@@ -1,8 +1,10 @@
 // frontend/src/pages/Dashboard.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import StatusCard from '../components/StatusCard';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import api from '../services/api';
+
+const COLORS_PIE = ['#4CAF50', '#F44336', '#FFC107', '#2196F3']; // Cores para o gráfico de pizza
 
 function Dashboard() {
   const [resumo, setResumo] = useState({
@@ -10,167 +12,146 @@ function Dashboard() {
     boletosVencidos: 0,
     boletosAVencer: 0,
     valorTotal: 0,
-    mensagensEnviadas: 0,
+    mensagensEnviadas: 0, // Este virá do resumo geral
     ultimaExecucao: null
   });
+  const [estatisticasHistorico, setEstatisticasHistorico] = useState({
+      statusContagem: {}, // Ex: { enviado: 10, falha: 2 }
+      // ... outras estatísticas do histórico que o backend possa fornecer
+  });
   const [loading, setLoading] = useState(true);
-  const [erro, setErro] = useState('');
+  const [error, setError] = useState(''); // Renomeado
+
+  // Usar useCallback para memoizar a função carregarDados
+  const carregarDados = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    console.log('Carregando dados do dashboard...');
+
+    try {
+      // Opcional: "Acordar" o backend do Render.
+      // await api.get('/test');
+      // console.log('Teste de conexão com backend OK para dashboard.');
+
+      const resumoResponse = await api.get('/dashboard/resumo');
+      console.log('Dados do resumo do dashboard recebidos:', resumoResponse.data);
+      const dadosResumo = resumoResponse.data || {};
+      setResumo({
+        totalClientes: dadosResumo.totalClientes || 0,
+        boletosVencidos: dadosResumo.boletosVencidos || 0,
+        boletosAVencer: dadosResumo.boletosAVencer || 0,
+        valorTotal: dadosResumo.valorTotal || 0,
+        mensagensEnviadas: dadosResumo.mensagensEnviadas || 0, // Total de mensagens no histórico
+        ultimaExecucao: dadosResumo.ultimaExecucao || null
+      });
+
+      // Buscar estatísticas detalhadas do histórico (ex: contagem por status)
+      const estatisticasResponse = await api.get('/dashboard/estatisticas');
+      console.log('Dados de estatísticas do histórico recebidos:', estatisticasResponse.data);
+      setEstatisticasHistorico(estatisticasResponse.data || { statusContagem: {} });
+
+    } catch (apiError) {
+      console.error('Erro ao carregar dados do dashboard:', apiError);
+      const errorMsg = apiError.response?.data?.erro || apiError.message || 'Falha ao carregar dados.';
+      setError(`Erro: ${errorMsg}`);
+    } finally {
+      setLoading(false);
+    }
+  }, []); // useCallback não tem dependências aqui, pois não usa props ou state que mudam externamente
 
   useEffect(() => {
     carregarDados();
-  }, []);
+  }, [carregarDados]); // Dependência do useCallback
 
-  const carregarDados = async () => {
-    try {
-      setLoading(true);
-      setErro('');
-      console.log('Carregando dados do dashboard...');
-      
-      // Teste da conexão com o backend
-      try {
-        const testResponse = await api.get('/test');
-        console.log('Teste de conexão bem-sucedido:', testResponse.data);
-      } catch (testError) {
-        console.error('Erro no teste de conexão:', testError);
-        setErro('Erro na conexão com o servidor. Verifique se o backend está online.');
-        setLoading(false);
-        return;
-      }
-      
-      try {
-        const response = await api.get('/dashboard/resumo');
-        console.log('Dados do dashboard recebidos:', response.data);
-        
-        // Garantir que todos os campos existam para evitar erros
-        const dadosRecebidos = response.data || {};
-        
-        setResumo({
-          totalClientes: dadosRecebidos.totalClientes || 0,
-          boletosVencidos: dadosRecebidos.boletosVencidos || 0,
-          boletosAVencer: dadosRecebidos.boletosAVencer || 0,
-          valorTotal: dadosRecebidos.valorTotal || 0,
-          mensagensEnviadas: dadosRecebidos.mensagensEnviadas || 0,
-          ultimaExecucao: dadosRecebidos.ultimaExecucao || null
-        });
-      } catch (apiError) {
-        console.error('Erro ao carregar resumo do dashboard:', apiError);
-        setErro('Falha ao carregar dados do dashboard. Verifique o console para detalhes.');
-      }
-      
-      setLoading(false);
-    } catch (error) {
-      console.error('Erro geral ao carregar dashboard:', error);
-      setErro(`Erro ao carregar dados: ${error.message}`);
-      setLoading(false);
-    }
-  };
+  // Dados para o gráfico de pizza (Status dos Boletos)
+  const statusBoletosData = [
+    { name: 'A Vencer', value: resumo.boletosAVencer || 0 },
+    { name: 'Vencidos', value: resumo.boletosVencidos || 0 }
+    // Poderia adicionar 'Pagos' se essa informação viesse do backend/resumo
+  ].filter(item => item.value > 0); // Filtra para não mostrar fatias zeradas
 
-  // Dados para o gráfico de pizza
-  const statusBoletos = [
-    { name: 'A Vencer', value: resumo.boletosAVencer, color: '#4CAF50' },
-    { name: 'Vencidos', value: resumo.boletosVencidos, color: '#F44336' }
-  ];
+  // Dados para o gráfico de barras (Status de Envio de Mensagens do Histórico)
+  // Isso deve vir do `estatisticasHistorico.statusContagem`
+  const statusEnvioData = Object.entries(estatisticasHistorico.statusContagem || {})
+    .map(([name, value]) => ({ name, value }));
+  // Exemplo: [{ name: 'enviado', value: 100 }, { name: 'falha', value: 5 }]
 
-  // Dados de exemplo para o gráfico de barras (histórico de mensagens)
-  const dadosMensagens = [
-    { mes: 'Jan', quantidade: 45 },
-    { mes: 'Fev', quantidade: 60 },
-    { mes: 'Mar', quantidade: 32 },
-    { mes: 'Abr', quantidade: 70 },
-    { mes: 'Mai', quantidade: resumo.mensagensEnviadas }
-  ];
 
   if (loading) {
-    return <div className="loader"></div>;
+    return <div className="loader" aria-label="Carregando dashboard"></div>;
   }
 
   return (
     <div>
-      <h1>Dashboard</h1>
-      
-      {erro && <div className="alert alert-danger">{erro}</div>}
-      
-      <div className="summary-cards">
-        <StatusCard 
-          title="Total de Clientes"
-          value={resumo.totalClientes}
-          icon="fas fa-users"
-        />
-        <StatusCard 
-          title="Boletos a Vencer"
-          value={resumo.boletosAVencer}
-          icon="fas fa-calendar-check"
-          color="#4CAF50"
-        />
-        <StatusCard 
-          title="Boletos Vencidos"
-          value={resumo.boletosVencidos}
-          icon="fas fa-calendar-times"
-          color="#F44336"
-        />
-        <StatusCard 
-          title="Valor Total"
-          value={`R$ ${(resumo.valorTotal || 0).toFixed(2)}`}
-          icon="fas fa-money-bill-wave"
-          color="#166088"
-        />
-        <StatusCard 
-          title="Mensagens Enviadas"
-          value={resumo.mensagensEnviadas}
-          icon="fas fa-paper-plane"
-          color="#4fc3a1"
-        />
-      </div>
-      
-      <div className="charts-container" style={{ display: 'flex', flexWrap: 'wrap', gap: '20px' }}>
-        <div className="card" style={{ flex: '1', minWidth: '300px', height: '400px' }}>
-          <h3>Status dos Boletos</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie 
-                data={statusBoletos} 
-                dataKey="value" 
-                nameKey="name" 
-                cx="50%" 
-                cy="50%" 
-                outerRadius={100} 
-                fill="#8884d8" 
-                label={({name, percent}) => `${name}: ${(percent * 100).toFixed(0)}%`}
-              >
-                {statusBoletos.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip formatter={(value) => value} />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-        
-        <div className="card" style={{ flex: '1', minWidth: '300px', height: '400px' }}>
-          <h3>Histórico de Mensagens Enviadas</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={dadosMensagens}>
-              <XAxis dataKey="mes" />
-              <YAxis />
-              <Tooltip formatter={(value) => value} />
-              <Legend />
-              <Bar dataKey="quantidade" name="Mensagens" fill="#4a6fa5" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-      
-      <div className="card">
-        <h3>Última Execução</h3>
-        <p>
-          {resumo.ultimaExecucao 
-            ? new Date(resumo.ultimaExecucao).toLocaleString('pt-BR') 
-            : 'Nenhuma execução registrada'}
-        </p>
-        <button className="btn btn-primary" onClick={carregarDados} style={{ marginTop: '10px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <h1>Dashboard</h1>
+        <button className="btn btn-secondary" onClick={carregarDados} disabled={loading}>
           <i className="fas fa-sync-alt"></i> Atualizar Dados
         </button>
+      </div>
+
+      {error && <div className="alert alert-danger" role="alert">{error}</div>}
+
+      <div className="summary-cards">
+        <StatusCard title="Total de Clientes" value={resumo.totalClientes} icon="fas fa-users" color="#17a2b8" />
+        <StatusCard title="Boletos a Vencer" value={resumo.boletosAVencer} icon="fas fa-calendar-check" color="#28a745" />
+        <StatusCard title="Boletos Vencidos" value={resumo.boletosVencidos} icon="fas fa-calendar-times" color="#dc3545" />
+        <StatusCard title="Valor Total em Aberto" value={(resumo.valorTotal || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} icon="fas fa-money-bill-wave" color="#007bff" />
+        <StatusCard title="Total de Mensagens (Histórico)" value={resumo.mensagensEnviadas} icon="fas fa-envelope-open-text" color="#6f42c1" />
+      </div>
+
+      <div className="charts-container" style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', marginTop: '30px' }}>
+        {statusBoletosData.length > 0 && (
+          <div className="card" style={{ flex: '1 1 400px', minWidth: '300px', height: '400px' }}>
+            <h3>Status dos Boletos (Ativos)</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={statusBoletosData}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={100}
+                  labelLine={false}
+                  label={({ name, percent, value }) => `${name}: ${value} (${(percent * 100).toFixed(0)}%)`}
+                >
+                  {statusBoletosData.map((entry, index) => (
+                    <Cell key={`cell-boletos-${index}`} fill={COLORS_PIE[index % COLORS_PIE.length]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value, name) => [value, name]} />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+
+        {statusEnvioData.length > 0 && (
+          <div className="card" style={{ flex: '1 1 400px', minWidth: '300px', height: '400px' }}>
+            <h3>Status de Envio (Histórico)</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={statusEnvioData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                <XAxis dataKey="name" />
+                <YAxis allowDecimals={false} />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="value" name="Quantidade" fill="#82ca9d" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </div>
+
+      <div className="card" style={{ marginTop: '30px' }}>
+        <h3>Informações do Sistema</h3>
+        <p>
+          <strong>Última Execução do Processamento de Boletos:</strong><br />
+          {resumo.ultimaExecucao
+            ? new Date(resumo.ultimaExecucao).toLocaleString('pt-BR', { dateStyle: 'full', timeStyle: 'medium'})
+            : 'Nenhuma execução registrada ou informação indisponível.'}
+        </p>
+        {/* Adicionar mais informações relevantes do sistema se necessário */}
       </div>
     </div>
   );

@@ -5,116 +5,109 @@ const path = require('path');
 const fs = require('fs');
 const dotenv = require('dotenv');
 
-// Carregar variáveis de ambiente
 dotenv.config();
 
 const app = express();
 
-// Configurar EJS como view engine
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-// Obter origens permitidas do ambiente
 const origensPermitidas = [
   process.env.FRONTEND_URL || 'http://localhost:3000',
   process.env.RENDER_URL || 'https://sistema-cobranca-frontend.onrender.com',
-  'http://localhost:5000' // Para desenvolvimento local
+  'http://localhost:5000'
 ];
 
 console.log('Origens permitidas CORS:', origensPermitidas);
 
-// Configuração CORS - Modificado para ser mais permissivo durante resolução de problemas
+// Configuração CORS ajustada
 app.use(cors({
-  origin: '*', // Temporariamente permita todas as origens para teste
+  origin: function (origin, callback) {
+    if (origensPermitidas.indexOf(origin) !== -1 || !origin) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  credentials: true,
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  // credentials: false // Removido ou false, já que o frontend não envia credenciais
 }));
 
-// Middlewares
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Adicionar um log middleware para depuração
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
   next();
 });
 
-// Garante que as pastas necessárias existam
 const ensureDirectoryExistence = (dirPath) => {
   if (!fs.existsSync(dirPath)) {
     fs.mkdirSync(dirPath, { recursive: true });
   }
 };
 
-// Criação das pastas necessárias
-const botDir = path.join(__dirname, 'bot');
-const controllersDir = path.join(__dirname, 'controllers');
-const routesDir = path.join(__dirname, 'routes');
+// Mantenha a criação de pastas que são parte do código base,
+// mas lembre-se que arquivos de DADOS não devem ser criados assim no Render.
 const viewsDir = path.join(__dirname, 'views');
 const publicDir = path.join(__dirname, 'public');
-
-ensureDirectoryExistence(botDir);
-ensureDirectoryExistence(controllersDir);
-ensureDirectoryExistence(routesDir);
 ensureDirectoryExistence(viewsDir);
 ensureDirectoryExistence(publicDir);
+// A criação de 'bot', 'controllers', 'routes' em runtime não é usual
+// se eles contêm código. Se 'botDir' for para dados como boletos.xlsx,
+// esta abordagem de filesystem é o problema principal no Render.
 
-// Criar arquivo boletos.xlsx se não existir
+// REMOVER OU ADAPTAR: Criação de boletos.xlsx em runtime é problemático no Render
+/*
 const boletoFilePath = path.join(__dirname, 'bot', 'boletos.xlsx');
 if (!fs.existsSync(boletoFilePath)) {
-  const xlsx = require('xlsx');
-  const wb = xlsx.utils.book_new();
-  const ws = xlsx.utils.json_to_sheet([]);
-  xlsx.utils.book_append_sheet(wb, ws, 'Boletos');
-  xlsx.writeFile(wb, boletoFilePath);
+  // ... (lógica de criação do arquivo Excel) ...
+  // ESTA LÓGICA PRECISA SER REVISADA DEVIDO AO SISTEMA DE ARQUIVOS EFÊMERO
 }
+*/
 
-// Importar rotas
 const clientesRoutes = require('./routes/clientes');
 const cobrancasRoutes = require('./routes/cobrancas');
 const dashboardRoutes = require('./routes/dashboard');
 
-// Rota de teste/verificação de saúde
 app.get('/api/test', (req, res) => {
-  res.json({ 
-    message: 'API está funcionando!', 
-    timestamp: new Date().toISOString() 
+  res.json({
+    message: 'API está funcionando!',
+    timestamp: new Date().toISOString()
   });
 });
 
-// Usar rotas
 app.use('/api/clientes', clientesRoutes);
 app.use('/api/cobrancas', cobrancasRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 
-// Rota para o dashboard web
+// Rota para o dashboard web - Revisar a leitura de boletos.xlsx
 app.get('/', (req, res) => {
   try {
     const persistenceService = require('./bot/persistenceService');
-    const path = require('path');
-    const xlsx = require('xlsx');
-    
-    // Inicializa o serviço de persistência
-    persistenceService.initializeHistoricoFile();
-    
-    // Ler dados do Excel
-    const arquivoBoletos = path.join(__dirname, 'bot', 'boletos.xlsx');
-    const workbook = xlsx.readFile(arquivoBoletos);
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const boletos = xlsx.utils.sheet_to_json(sheet);
-    
-    // Obter estatísticas
+    // const path = require('path'); // já importado
+    // const xlsx = require('xlsx'); // Considere não ler daqui diretamente em produção
+
+    persistenceService.initializeHistoricoFile(); // Ainda problemático se historico_cobrancas.json for local
+
+    // ATENÇÃO: A leitura direta do boletos.xlsx aqui é problemática no Render
+    // Os dados deveriam vir de um banco de dados ou de um local persistente.
+    // const arquivoBoletos = path.join(__dirname, 'bot', 'boletos.xlsx');
+    // const workbook = xlsx.readFile(arquivoBoletos);
+    // const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    // const boletos = xlsx.utils.sheet_to_json(sheet);
+    const boletos = []; // Substituir pela lógica de BD
+
     const stats = persistenceService.obterEstatisticas();
-    
-    // Render da view dashboard
-    res.render('dashboard/index', { 
-      boletos, 
-      stats, 
-      whatsappStatus: 'Conectado',
-      persistenceService
+
+    res.render('dashboard/index', {
+      boletos,
+      stats,
+      // O status do WhatsApp deve ser dinâmico ou removido se não usar @wppconnect
+      whatsappStatus: 'API CallMeBot', // Exemplo
+      persistenceService // Passar o service pode não ser ideal, passe apenas os dados.
     });
   } catch (error) {
     console.error('Erro ao renderizar dashboard:', error);
@@ -122,11 +115,10 @@ app.get('/', (req, res) => {
   }
 });
 
-// Rota para disparar mensagens manualmente
 app.post('/disparar-mensagens', async (req, res) => {
   try {
     const processaBoletos = require('./bot/processaBoletos');
-    await processaBoletos();
+    await processaBoletos(); // Lembre-se que processaBoletos lê o Excel localmente
     res.redirect('/?success=true');
   } catch (error) {
     console.error('Erro ao disparar mensagens:', error);
@@ -134,80 +126,45 @@ app.post('/disparar-mensagens', async (req, res) => {
   }
 });
 
-// Rota para adicionar boletos pela interface
+// Rota para adicionar boletos - MUITO PROBLEMÁTICA NO RENDER DEVIDO À ESCRITA EM ARQUIVO
 app.post('/boletos/adicionar', (req, res) => {
-  try {
-    const { nome, telefone, vencimento, valor } = req.body;
-    
-    // Formatar e validar os dados
-    if (!nome || !telefone || !vencimento || !valor) {
-      return res.redirect('/?error=true');
-    }
-    
-    // Adicionar boleto usando o controller
-    const clientesController = require('./controllers/clientesController');
-    
-    // Preparar o objeto de boleto
-    const novoBoleto = {
-      Nome: nome,
-      Telefone: telefone,
-      Vencimento: vencimento,
-      Valor: parseFloat(valor),
-      Status: 'Pendente'
-    };
-    
-    // Adicionar ao Excel (chamando a função diretamente)
-    clientesController.adicionarCliente({
-      body: novoBoleto
-    }, {
-      status: () => {
-        return {
-          json: () => res.redirect('/?success=true')
-        };
-      },
-      json: () => res.redirect('/?success=true')
-    });
-    
-  } catch (error) {
-    console.error('Erro ao adicionar boleto:', error);
-    res.redirect('/?error=true');
-  }
+  // ESTA ROTA DEVE SER COMPLETAMENTE REFEITA PARA USAR UM BANCO DE DADOS
+  console.warn('Tentativa de adicionar boleto via formulário. Esta função precisa ser migrada para BD.');
+  // ... (lógica atual que escreve em Excel) ...
+  res.redirect('/?error=true&message=FuncaoNaoDisponivelComPersistenciaAtual');
 });
 
-// Rota para exibir o QR code
+// REMOVER: Rota do QR Code não é compatível com CallMeBot
+/*
 app.get('/qrcode', (req, res) => {
-  if (global.qrCode) {
-    res.send(`
-      <html>
-        <body>
-          <h1>Escaneie o QR Code com o WhatsApp</h1>
-          <img src="${global.qrCode}" alt="QR Code" />
-        </body>
-      </html>
-    `);
-  } else {
-    res.send('QR Code ainda não disponível. Tente reiniciar o servidor.');
-  }
+  // ...
 });
+*/
 
-// Tratamento de erros
 app.use((err, req, res, next) => {
   console.error('Erro na aplicação:', err.stack);
-  res.status(500).json({ 
-    erro: 'Algo deu errado!', 
+  res.status(500).json({
+    erro: 'Algo deu errado!',
     detalhes: err.message,
-    stack: process.env.NODE_ENV === 'production' ? undefined : err.stack 
+    stack: process.env.NODE_ENV === 'production' ? undefined : err.stack
   });
 });
 
-const PORT = process.env.PORT || 5000;
+// Usar a porta fornecida pelo Render ou 3001 para desenvolvimento
+const PORT = process.env.PORT || 3001;
 const server = app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
-});
 
-// Configuração para manter o servidor aberto (evitar "dorme" no Render.com)
-setInterval(() => {
-  console.log('Keepalive ping');
-}, 1000 * 60 * 14); // A cada 14 minutos (o Render "adormece" após 15 min)
+  // Iniciar a lógica do bot (agendamentos) após o servidor iniciar
+  console.log('Iniciando bot de agendamento...');
+  const { main: botMainFunction } = require('./bot/index'); // Assumindo que 'main' é exportado
+  if (typeof botMainFunction === 'function') {
+    botMainFunction().catch(err => console.error('Erro ao iniciar o bot de agendamento:', err));
+  } else {
+    console.warn('Função principal do bot não encontrada ou bot/index.js não exporta main.');
+    // Se bot/index.js executa sua lógica principal ao ser importado:
+    // require('./bot/index');
+  }
+});
 
 module.exports = app;
