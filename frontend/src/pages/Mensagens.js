@@ -5,25 +5,21 @@ import api from '../services/api';
 function Mensagens() {
   const [clientes, setClientes] = useState([]);
   const [historico, setHistorico] = useState([]);
-  const [clientesSelecionados, setClientesSelecionados] = useState(new Set()); // Usar Set para melhor performance na seleção
+  const [clientesSelecionados, setClientesSelecionados] = useState(new Set());
   const [loading, setLoading] = useState(true);
   const [enviando, setEnviando] = useState(false);
-  const [error, setError] = useState(''); // Renomeado
-  const [success, setSuccess] = useState(''); // Renomeado
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   const carregarDados = useCallback(async (showLoading = true) => {
     if (showLoading) setLoading(true);
     setError('');
-    setSuccess(''); // Limpa mensagens ao recarregar
+    setSuccess('');
     console.log('Carregando dados para a página de Mensagens...');
 
     try {
-      // Opcional: Teste de conexão com o backend
-      // await api.get('/test');
-      // console.log('Teste de conexão com backend OK para Mensagens.');
-
       const [clientesRes, historicoRes] = await Promise.all([
-        api.get('/clientes'),
+        api.get('/clientes'), // Idealmente, esta rota deveria retornar apenas clientes com boletos pendentes para envio
         api.get('/cobrancas/historico')
       ]);
 
@@ -31,9 +27,7 @@ function Mensagens() {
       setClientes(Array.isArray(clientesRes.data) ? clientesRes.data : []);
 
       console.log('Histórico carregado:', historicoRes.data);
-      // O histórico já vem como um array de mensagens, não precisa de .mensagensEnviadas
       setHistorico(Array.isArray(historicoRes.data) ? historicoRes.data.slice().reverse() : []);
-
 
     } catch (apiError) {
       console.error('Erro ao carregar dados para Mensagens:', apiError);
@@ -64,7 +58,10 @@ function Mensagens() {
 
   const handleSelecionarTodos = (event) => {
     if (event.target.checked) {
-      setClientesSelecionados(new Set(clientes.map(cliente => cliente.ID)));
+      // Selecionar apenas clientes que ainda não foram processados ou estão pendentes
+      // A lógica exata depende do que seu backend considera como "enviável"
+      const clientesEnviaveis = clientes.filter(c => c.Status !== 'Pago' && c.Status !== 'Cancelado'); // Exemplo
+      setClientesSelecionados(new Set(clientesEnviaveis.map(cliente => cliente.ID)));
     } else {
       setClientesSelecionados(new Set());
     }
@@ -79,7 +76,7 @@ function Mensagens() {
     try {
       const response = await api.post('/cobrancas/disparar-individual', { id: clienteId });
       setSuccess(response.data?.mensagem || `Operação para cliente ${clienteId} concluída.`);
-      await carregarDados(false); // Recarrega sem mostrar loading principal
+      await carregarDados(false);
     } catch (apiError) {
       console.error(`Erro ao enviar mensagem individual para ID ${clienteId}:`, apiError);
       const errorMsg = apiError.response?.data?.erro || apiError.response?.data?.detalhes || apiError.message || 'Erro desconhecido.';
@@ -97,10 +94,10 @@ function Mensagens() {
     const idsParaEnviar = Array.from(clientesSelecionados);
 
     if (idsParaEnviar.length === 0) {
-      console.log('Disparando para TODOS os clientes (via /cobrancas/disparar)');
+      console.log('Disparando para TODOS os clientes pendentes (via /cobrancas/disparar)');
       try {
-        const response = await api.post('/cobrancas/disparar'); // Endpoint para processar todos
-        setSuccess(response.data?.mensagem || 'Processo de cobrança para todos iniciado.');
+        const response = await api.post('/cobrancas/disparar');
+        setSuccess(response.data?.mensagem || 'Processo de cobrança para todos os pendentes iniciado.');
       } catch (apiError) {
         console.error('Erro ao disparar para todos os clientes:', apiError);
         const errorMsg = apiError.response?.data?.erro || apiError.message || 'Erro desconhecido.';
@@ -108,6 +105,8 @@ function Mensagens() {
       }
     } else {
       console.log(`Disparando para ${idsParaEnviar.length} clientes selecionados...`);
+      // Idealmente, o backend deveria aceitar um array de IDs para processamento em lote
+      // Fazer N chamadas individuais pode ser ineficiente e sobrecarregar o servidor/API do WhatsApp
       let sucessoCount = 0;
       let falhaCount = 0;
       for (const id of idsParaEnviar) {
@@ -118,13 +117,11 @@ function Mensagens() {
           falhaCount++;
           console.error(`Erro no envio individual (em lote) para ID ${id}:`, apiError.message);
         }
-        // Opcional: pequeno delay para não sobrecarregar
-        // await new Promise(resolve => setTimeout(resolve, 200));
       }
-      setSuccess(`${sucessoCount} mensagens iniciadas com sucesso. ${falhaCount} falhas.`);
+      setSuccess(`${sucessoCount} mensagens iniciadas com sucesso. ${falhaCount > 0 ? `${falhaCount} falhas.` : ''}`);
     }
     setClientesSelecionados(new Set()); // Limpa seleção
-    await carregarDados(false); // Recarrega sem mostrar loading principal
+    await carregarDados(false);
     setEnviando(false);
   };
 
@@ -135,9 +132,7 @@ function Mensagens() {
         day: '2-digit', month: '2-digit', year: 'numeric',
         hour: '2-digit', minute: '2-digit'
       });
-    } catch {
-      return dataString; // Retorna a string original se a data for inválida
-    }
+    } catch { return dataString; }
   };
 
   const formatarValorBR = (valor) => {
@@ -145,7 +140,6 @@ function Mensagens() {
     if (isNaN(numero)) return 'R$ -';
     return numero.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   };
-
 
   if (loading) {
     return <div className="loader" aria-label="Carregando dados de mensagens"></div>;
@@ -157,7 +151,7 @@ function Mensagens() {
         <h1>Disparar Mensagens de Cobrança</h1>
         <button
             className="btn btn-secondary"
-            onClick={() => carregarDados(true)} // Força o loading ao atualizar manualmente
+            onClick={() => carregarDados(true)}
             disabled={loading || enviando}
           >
             <i className="fas fa-sync-alt"></i> Atualizar Dados
@@ -168,15 +162,16 @@ function Mensagens() {
       {success && <div className="alert alert-success" role="alert">{success}</div>}
 
       <div className="card">
-        <div className="card-header">
+        <div className="card-header" style={{ justifyContent: 'space-between' }}> {/* Usando a classe card-header */}
           <h2>Selecionar Clientes para Envio</h2>
           <button
-            className="btn btn-primary"
+            className="btn btn-primary" // Usando classes CSS
             onClick={dispararMensagensSelecionadasOuTodas}
-            disabled={enviando || clientes.length === 0}
+            disabled={enviando || (clientes.length === 0 && clientesSelecionados.size === 0) }
           >
+            <i className="fas fa-rocket"></i> {/* Adicionado ícone */}
             {enviando ? 'Enviando...' :
-             (clientesSelecionados.size > 0 ? `Disparar para ${clientesSelecionados.size} Selecionados` : 'Disparar para Todos Pendentes (Backend)')}
+             (clientesSelecionados.size > 0 ? `Disparar para ${clientesSelecionados.size} Selecionado(s)` : 'Disparar para Todos Pendentes')}
           </button>
         </div>
 
@@ -191,8 +186,8 @@ function Mensagens() {
                   <input
                     type="checkbox"
                     onChange={handleSelecionarTodos}
-                    checked={clientes.length > 0 && clientesSelecionados.size === clientes.length}
-                    disabled={clientes.length === 0}
+                    checked={clientes.length > 0 && clientesSelecionados.size === clientes.filter(c => c.Status !== 'Pago' && c.Status !== 'Cancelado').length && clientesSelecionados.size > 0}
+                    disabled={clientes.filter(c => c.Status !== 'Pago' && c.Status !== 'Cancelado').length === 0}
                   />
                 </th>
                 <th>Nome</th>
@@ -204,12 +199,15 @@ function Mensagens() {
             </thead>
             <tbody>
               {clientes.map(cliente => (
+                // Considerar não mostrar clientes com boletos já pagos ou cancelados nesta lista
+                // if (cliente.Status === 'Pago' || cliente.Status === 'Cancelado') return null;
                 <tr key={cliente.ID}>
                   <td>
                     <input
                       type="checkbox"
                       checked={clientesSelecionados.has(cliente.ID)}
                       onChange={() => handleSelecaoCliente(cliente.ID)}
+                      // disabled={cliente.Status === 'Pago' || cliente.Status === 'Cancelado'} // Opcional
                     />
                   </td>
                   <td>{cliente.Nome}</td>
@@ -218,7 +216,7 @@ function Mensagens() {
                   <td>{cliente.Status}</td>
                   <td>
                     <button
-                      className="btn btn-success btn-sm"
+                      className="btn btn-success btn-sm" // Usando classes CSS
                       onClick={() => dispararMensagemIndividual(cliente.ID)}
                       disabled={enviando}
                       title="Enviar mensagem apenas para este cliente"
@@ -235,7 +233,7 @@ function Mensagens() {
       </div>
 
       <div className="card" style={{ marginTop: '30px' }}>
-        <h2>Histórico de Mensagens Enviadas</h2>
+        <div className="card-header"><h2>Histórico de Mensagens Enviadas</h2></div> {/* Consistência */}
         {historico.length === 0 && !loading ? (
            <p style={{ padding: '20px', textAlign: 'center' }}>Nenhum histórico de mensagens encontrado.</p>
         ) : (
@@ -253,7 +251,7 @@ function Mensagens() {
             </thead>
             <tbody>
               {historico.map(mensagem => (
-                <tr key={mensagem.id}>
+                <tr key={mensagem.id}> {/* Assumindo que cada mensagem tem um 'id' único */}
                   <td>{formatarDataHora(mensagem.dataEnvio)}</td>
                   <td>{mensagem.nome}</td>
                   <td>{mensagem.telefone}</td>

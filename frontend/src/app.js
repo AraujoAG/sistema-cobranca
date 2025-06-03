@@ -15,7 +15,7 @@ function App() {
     <Router>
       <div className="app-container">
         <Sidebar />
-        <main className="content">
+        <main className="content"> {/* A classe 'content' é importante para o margin-left da sidebar */}
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/clientes" element={<Clientes />} />

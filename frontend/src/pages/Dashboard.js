@@ -17,22 +17,16 @@ function Dashboard() {
   });
   const [estatisticasHistorico, setEstatisticasHistorico] = useState({
       statusContagem: {}, // Ex: { enviado: 10, falha: 2 }
-      // ... outras estatísticas do histórico que o backend possa fornecer
   });
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(''); // Renomeado
+  const [error, setError] = useState('');
 
-  // Usar useCallback para memoizar a função carregarDados
   const carregarDados = useCallback(async () => {
     setLoading(true);
     setError('');
     console.log('Carregando dados do dashboard...');
 
     try {
-      // Opcional: "Acordar" o backend do Render.
-      // await api.get('/test');
-      // console.log('Teste de conexão com backend OK para dashboard.');
-
       const resumoResponse = await api.get('/dashboard/resumo');
       console.log('Dados do resumo do dashboard recebidos:', resumoResponse.data);
       const dadosResumo = resumoResponse.data || {};
@@ -41,11 +35,10 @@ function Dashboard() {
         boletosVencidos: dadosResumo.boletosVencidos || 0,
         boletosAVencer: dadosResumo.boletosAVencer || 0,
         valorTotal: dadosResumo.valorTotal || 0,
-        mensagensEnviadas: dadosResumo.mensagensEnviadas || 0, // Total de mensagens no histórico
+        mensagensEnviadas: dadosResumo.mensagensEnviadas || 0,
         ultimaExecucao: dadosResumo.ultimaExecucao || null
       });
 
-      // Buscar estatísticas detalhadas do histórico (ex: contagem por status)
       const estatisticasResponse = await api.get('/dashboard/estatisticas');
       console.log('Dados de estatísticas do histórico recebidos:', estatisticasResponse.data);
       setEstatisticasHistorico(estatisticasResponse.data || { statusContagem: {} });
@@ -57,36 +50,31 @@ function Dashboard() {
     } finally {
       setLoading(false);
     }
-  }, []); // useCallback não tem dependências aqui, pois não usa props ou state que mudam externamente
+  }, []); 
 
   useEffect(() => {
     carregarDados();
-  }, [carregarDados]); // Dependência do useCallback
+  }, [carregarDados]);
 
-  // Dados para o gráfico de pizza (Status dos Boletos)
   const statusBoletosData = [
     { name: 'A Vencer', value: resumo.boletosAVencer || 0 },
     { name: 'Vencidos', value: resumo.boletosVencidos || 0 }
-    // Poderia adicionar 'Pagos' se essa informação viesse do backend/resumo
-  ].filter(item => item.value > 0); // Filtra para não mostrar fatias zeradas
+  ].filter(item => item.value > 0);
 
-  // Dados para o gráfico de barras (Status de Envio de Mensagens do Histórico)
-  // Isso deve vir do `estatisticasHistorico.statusContagem`
   const statusEnvioData = Object.entries(estatisticasHistorico.statusContagem || {})
     .map(([name, value]) => ({ name, value }));
-  // Exemplo: [{ name: 'enviado', value: 100 }, { name: 'falha', value: 5 }]
 
-
-  if (loading) {
+  if (loading && resumo.totalClientes === 0) { // Melhor condição de loading inicial
     return <div className="loader" aria-label="Carregando dashboard"></div>;
   }
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+      <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}> {/* Usando .card-header para consistência */}
         <h1>Dashboard</h1>
-        <button className="btn btn-secondary" onClick={carregarDados} disabled={loading}>
-          <i className="fas fa-sync-alt"></i> Atualizar Dados
+        <button className="btn btn-secondary" onClick={carregarDados} disabled={loading}> {/* Usando .btn e .btn-secondary do App.css */}
+          <i className="fas fa-sync-alt"></i> {/* Ícone precisa de FontAwesome */}
+          {loading && resumo.totalClientes > 0 ? 'Atualizando...' : 'Atualizar Dados'}
         </button>
       </div>
 
@@ -151,7 +139,6 @@ function Dashboard() {
             ? new Date(resumo.ultimaExecucao).toLocaleString('pt-BR', { dateStyle: 'full', timeStyle: 'medium'})
             : 'Nenhuma execução registrada ou informação indisponível.'}
         </p>
-        {/* Adicionar mais informações relevantes do sistema se necessário */}
       </div>
     </div>
   );

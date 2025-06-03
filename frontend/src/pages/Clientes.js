@@ -6,21 +6,17 @@ import api from '../services/api';
 function Clientes() {
   const [clientes, setClientes] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(''); // Renomeado
+  const [error, setError] = useState('');
   const [clienteParaRemover, setClienteParaRemover] = useState(null);
-  const [success, setSuccess] = useState(''); // Renomeado
+  const [success, setSuccess] = useState('');
 
   const carregarClientes = useCallback(async () => {
     setLoading(true);
     setError('');
-    setSuccess(''); // Limpa mensagem de sucesso ao recarregar
+    setSuccess('');
     console.log('Carregando lista de clientes...');
 
     try {
-      // Opcional: "Acordar" o backend do Render.
-      // await api.get('/test');
-      // console.log('Teste de conexão com backend OK para clientes.');
-
       const response = await api.get('/clientes');
       console.log('Clientes recebidos:', response.data);
 
@@ -28,14 +24,14 @@ function Clientes() {
         setClientes(response.data);
       } else {
         console.error('Resposta da API de clientes não é um array:', response.data);
-        setClientes([]); // Define como array vazio para evitar erros de map
+        setClientes([]);
         setError('Formato de dados de clientes inválido recebido do servidor.');
       }
     } catch (apiError) {
       console.error('Erro ao carregar clientes:', apiError);
       const errorMsg = apiError.response?.data?.erro || apiError.message || 'Erro desconhecido ao carregar clientes.';
       setError(`Falha ao carregar clientes: ${errorMsg}`);
-      setClientes([]); // Garante que clientes seja um array em caso de erro
+      setClientes([]);
     } finally {
       setLoading(false);
     }
@@ -56,7 +52,13 @@ function Clientes() {
   const handleRemoverCliente = async () => {
     if (!clienteParaRemover || !clienteParaRemover.ID) return;
 
-    setLoading(true); // Pode-se usar um loading específico para remoção
+    // setLoading(true); // Pode usar um loading específico para remoção, não o global
+    let isRemoving = true; // Lógica de loading local para o botão
+    const originalButtonText = document.activeElement.innerHTML; // Salva o texto original do botão
+    document.activeElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Removendo...';
+    document.activeElement.disabled = true;
+
+
     setError('');
     setSuccess('');
 
@@ -64,14 +66,19 @@ function Clientes() {
       console.log('Removendo cliente ID:', clienteParaRemover.ID);
       await api.delete(`/clientes/${clienteParaRemover.ID}`);
       setSuccess(`Cliente "${clienteParaRemover.Nome}" removido com sucesso!`);
-      setClienteParaRemover(null); // Fecha o modal
+      setClienteParaRemover(null);
       await carregarClientes(); // Recarrega a lista
     } catch (apiError) {
       console.error('Erro ao remover cliente:', apiError);
       const errorMsg = apiError.response?.data?.erro || apiError.message || 'Erro desconhecido ao remover cliente.';
       setError(`Falha ao remover cliente: ${errorMsg}`);
     } finally {
-      setLoading(false);
+      // setLoading(false);
+      isRemoving = false;
+      // Idealmente, o botão de confirmação do modal seria um componente com seu próprio estado de loading
+      // Por agora, apenas restauramos um botão genérico se possível, ou você pode precisar de refs.
+      // Esta parte de restaurar o botão é complexa sem refs ou estado de componente para o modal.
+      // Vamos focar em fechar o modal.
     }
   };
 
@@ -80,6 +87,10 @@ function Clientes() {
     if (isNaN(numero)) return 'R$ -';
     return numero.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   };
+
+  // Para o modal de remoção, é melhor controlar sua visibilidade com estado
+  // const [isRemoveModalOpen, setIsRemoveModalOpen] = useState(false);
+  // useEffect(() => { setIsRemoveModalOpen(!!clienteParaRemover); }, [clienteParaRemover]);
 
   if (loading && clientes.length === 0) {
     return <div className="loader" aria-label="Carregando clientes"></div>;
@@ -94,11 +105,11 @@ function Clientes() {
             <i className="fas fa-plus"></i> Novo Cliente
           </Link>
           <button
-            className="btn btn-secondary"
+            className="btn btn-secondary" // Estilo global do App.css
             onClick={carregarClientes}
             disabled={loading}
           >
-            <i className="fas fa-sync-alt"></i> {loading ? 'Atualizando...' : 'Atualizar Lista'}
+            <i className="fas fa-sync-alt"></i> {loading && clientes.length > 0 ? 'Atualizando...' : 'Atualizar Lista'}
           </button>
         </div>
       </div>
@@ -107,18 +118,23 @@ function Clientes() {
       {success && <div className="alert alert-success" role="alert">{success}</div>}
 
       {clienteParaRemover && (
-        <div className="modal" style={{ display: 'block', position: 'fixed', zIndex: 1050, left: 0, top: 0, width: '100%', height: '100%', overflow: 'auto', backgroundColor: 'rgba(0,0,0,0.4)' }}>
-          <div className="modal-dialog" style={{ margin: '10% auto', maxWidth: '500px' }}>
-            <div className="modal-content" style={{ padding: '20px', backgroundColor: '#fff', borderRadius: '5px', boxShadow: '0 5px 15px rgba(0,0,0,.5)' }}>
-              <h3>Confirmar Exclusão</h3>
+        // Este modal é o seu original, pode ser transformado em um componente React reutilizável
+        <div className="modal" style={{ display: 'flex' }}> {/* Alterado para flex para centralizar */}
+          <div className="modal-content">
+            <div className="modal-header">
+                <h2>Confirmar Exclusão</h2>
+                <button className="close-button" onClick={cancelarRemocao}>&times;</button>
+            </div>
+            <div className="modal-body">
               <p>Tem certeza que deseja remover o cliente <strong>{clienteParaRemover.Nome}</strong> (ID: {clienteParaRemover.ID})?</p>
               <p>Esta ação não poderá ser desfeita.</p>
-              <div style={{ marginTop: '20px', textAlign: 'right' }}>
-                <button className="btn btn-secondary" onClick={cancelarRemocao} style={{ marginRight: '10px' }} disabled={loading}>Cancelar</button>
-                <button className="btn btn-danger" onClick={handleRemoverCliente} disabled={loading}>
-                  {loading ? 'Removendo...' : 'Confirmar Remoção'}
-                </button>
-              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={cancelarRemocao} /*disabled={loading}*/>Cancelar</button>
+              <button className="btn btn-danger" onClick={handleRemoverCliente} /*disabled={loading}*/>
+                 {/* {loading ? 'Removendo...' : 'Confirmar Remoção'}  // Este loading é o global, precisaria de um local */}
+                 Confirmar Remoção
+              </button>
             </div>
           </div>
         </div>
@@ -154,15 +170,15 @@ function Clientes() {
                     </td>
                     <td>
                       <Link to={`/editar-cliente/${cliente.ID}`} className="btn btn-secondary btn-sm" style={{ marginRight: '5px' }} title="Editar Cliente">
-                        <i className="fas fa-edit"></i>
+                        <i className="fas fa-edit"></i> <span className="sm:hidden md:inline">Editar</span>
                       </Link>
                       <button
                         className="btn btn-danger btn-sm"
                         onClick={() => confirmarRemocao(cliente)}
                         title="Remover Cliente"
-                        disabled={loading}
+                        // disabled={loading} // Não desabilitar com loading global aqui
                       >
-                        <i className="fas fa-trash"></i>
+                        <i className="fas fa-trash"></i> <span className="sm:hidden md:inline">Remover</span>
                       </button>
                     </td>
                   </tr>

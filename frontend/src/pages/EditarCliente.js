@@ -1,21 +1,21 @@
 // frontend/src/pages/EditarCliente.js
 import React, { useEffect, useState, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom'; // Adicionado Link
 import ClienteForm from '../components/ClienteForm';
 import api from '../services/api';
 
 function EditarCliente() {
-  const { id } = useParams(); // Pega o ID da URL
+  const { id } = useParams();
   const navigate = useNavigate();
   const [cliente, setCliente] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(''); // Renomeado
+  const [error, setError] = useState('');
 
   const carregarCliente = useCallback(async () => {
     if (!id) {
       setError("ID do cliente não fornecido na URL.");
       setLoading(false);
-      navigate("/clientes"); // Redireciona se não houver ID
+      navigate("/clientes");
       return;
     }
     setLoading(true);
@@ -23,15 +23,9 @@ function EditarCliente() {
     console.log(`Carregando cliente para edição, ID: ${id}`);
 
     try {
-      // Opcional: "Acordar" o backend do Render.
-      // await api.get('/test');
-      // console.log('Teste de conexão com backend OK para editar cliente.');
-
-      // Busca o cliente específico pela API (assumindo que o backend tem a rota /clientes/:id)
       const response = await api.get(`/clientes/${id}`);
       console.log('Cliente para edição recebido:', response.data);
       setCliente(response.data);
-
     } catch (apiError) {
       console.error('Erro ao carregar cliente para edição:', apiError);
       let errorMsg = 'Erro ao carregar dados do cliente.';
@@ -45,9 +39,6 @@ function EditarCliente() {
         errorMsg = apiError.message || errorMsg;
       }
       setError(errorMsg);
-      // Em caso de erro, pode ser útil não definir cliente como null para não perder o ID na URL
-      // ou redirecionar para a lista de clientes.
-      // setCliente(null);
     } finally {
       setLoading(false);
     }
@@ -63,31 +54,39 @@ function EditarCliente() {
 
   if (error) {
     return (
-      <div>
-        <h1>Erro ao Editar Cliente</h1>
-        <div className="alert alert-danger" role="alert">{error}</div>
-        <Link to="/clientes" className="btn btn-primary">Voltar para Clientes</Link>
+      <div> {/* Envolver em um card para consistência visual */}
+        <div className="card-header">
+            <h1>Erro ao Editar Cliente</h1>
+        </div>
+        <div className="card">
+            <div className="alert alert-danger" role="alert">{error}</div>
+            <Link to="/clientes" className="btn btn-primary">Voltar para Clientes</Link>
+        </div>
       </div>
     );
   }
 
   if (!cliente) {
-    // Este caso pode ser coberto pelo 'error' se a API retornar 404,
-    // mas é uma boa verificação adicional.
     return (
       <div>
-        <h1>Cliente Não Encontrado</h1>
-        <div className="alert alert-warning" role="alert">
-          O cliente que você está tentando editar não foi encontrado.
+        <div className="card-header">
+             <h1>Cliente Não Encontrado</h1>
         </div>
-        <Link to="/clientes" className="btn btn-primary">Voltar para Clientes</Link>
+        <div className="card">
+            <div className="alert alert-warning" role="alert">
+            O cliente que você está tentando editar não foi encontrado.
+            </div>
+            <Link to="/clientes" className="btn btn-primary">Voltar para Clientes</Link>
+        </div>
       </div>
     );
   }
 
   return (
     <div>
-      <h1>Editar Cliente: {cliente.Nome}</h1>
+        <div className="card-header">
+             <h1>Editar Cliente: {cliente.Nome}</h1>
+        </div>
       <ClienteForm cliente={cliente} isEditing={true} />
     </div>
   );
