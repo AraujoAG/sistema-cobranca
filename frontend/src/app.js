@@ -13,20 +13,21 @@ import './App.css'; // Estilos globais da aplicação
 function App() {
   return (
     <Router>
-      <div className="app-container">
-        <Sidebar />
-        <main className="content"> {/* A classe 'content' é importante para o margin-left da sidebar */}
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/clientes" element={<Clientes />} />
-            <Route path="/novo-cliente" element={<NovoCliente />} />
-            <Route path="/editar-cliente/:id" element={<EditarCliente />} />
-            <Route path="/mensagens" element={<Mensagens />} />
-            {/* Considere adicionar uma rota NotFound aqui */}
-            {/* <Route path="*" element={<NotFoundPage />} /> */}
-          </Routes>
-        </main>
-        <Footer />
+      <div className="app-container"> {/* Este terá display:flex; flex-direction:column; */}
+        <div className="main-wrapper"> {/* Este terá display:flex; flex-grow:1; */}
+          <Sidebar />
+          <main className="content"> {/* Este terá flex:1; e margin-left para a sidebar fixa */}
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/clientes" element={<Clientes />} />
+              <Route path="/novo-cliente" element={<NovoCliente />} />
+              <Route path="/editar-cliente/:id" element={<EditarCliente />} />
+              <Route path="/mensagens" element={<Mensagens />} />
+              {/* <Route path="*" element={<div>Página Não Encontrada</div>} /> */}
+            </Routes>
+          </main>
+        </div>
+        <Footer /> {/* Este será o último item no .app-container (flex-direction:column) */}
       </div>
     </Router>
   );

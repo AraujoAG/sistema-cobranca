@@ -1,15 +1,15 @@
 /* frontend/src/App.css */
 :root {
-  --primary-color: #000000;  /* Preto para a barra lateral */
-  --secondary-color: #d32f2f;  /* Vermelho para destaques */
-  --accent-color: #ffffff;  /* Branco para texto e contrastes */
+  --primary-color: #000000;
+  --secondary-color: #d32f2f;
+  --accent-color: #ffffff;
   --warning-color: #f8b400;
   --danger-color: #f44336;
   --light-color: #f5f5f5;
   --dark-color: #333;
   --text-color: #444;
   --sidebar-width: 250px;
-  --sidebar-width-collapsed: 80px; /* Adicionado para sidebar colapsada */
+  --sidebar-width-collapsed: 80px;
 }
 
 * {
@@ -27,340 +27,239 @@ body {
 
 .app-container {
   display: flex;
+  flex-direction: column; /* <<< IMPORTANTE: Para empilhar [sidebar+conteúdo] e [footer] */
   min-height: 100vh;
   position: relative;
 }
 
-.content {
-  flex: 1;
+/* Wrapper para Sidebar e Content para que fiquem lado a lado e empurrem o Footer para baixo */
+.main-wrapper {
+  display: flex;
+  flex-grow: 1; /* <<< IMPORTANTE: Para ocupar o espaço disponível e empurrar o footer */
+  position: relative; /* Para que a sidebar fixa funcione bem dentro dele */
+}
+
+.sidebar {
+  width: var(--sidebar-width);
+  background-color: var(--primary-color);
+  color: var(--accent-color);
   padding: 20px;
-  margin-left: var(--sidebar-width); /* Será ajustado pelo JS da Sidebar ou CSS se houver classe .collapsed */
-  transition: margin-left 0.3s;
-  position: relative;
-  min-height: 100vh;
-  padding-bottom: 80px; /* Espaço para o footer (ajuste conforme altura do footer) */
+  display: flex;
+  flex-direction: column;
+  transition: width 0.3s ease-in-out;
+  position: fixed; /* Sidebar continua fixa */
+  height: 100%; /* Ocupa toda a altura da janela */
+  z-index: 1000;
+  overflow-x: hidden;
+}
+.sidebar.collapsed {
+  width: var(--sidebar-width-collapsed);
+}
+
+.sidebar-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  min-height: 100px;
+}
+.sidebar-logo {
+  height: 50px;
+  width: auto;
+  margin-bottom: 10px;
+  object-fit: contain;
+}
+.sidebar-title-text {
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+}
+.sidebar.collapsed .sidebar-title-text {
+  display: none;
+}
+
+.toggle-btn {
+  position: absolute;
+  top: 15px;
+  /* O 'right' será ajustado pelo JS ou por uma classe no CSS se preferir */
+  background: var(--secondary-color);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 1010;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  transition: right 0.3s ease-in-out; /* Se for controlar 'right' com CSS */
+}
+/* Estilos do toggle-btn quando a sidebar está colapsada (pode ser via JS ou classe) */
+/* .sidebar.collapsed .toggle-btn { right: -15px; } */
+
+
+.sidebar-menu ul { list-style: none; padding: 0; margin: 0; }
+.sidebar-menu li a {
+  display: flex; align-items: center; padding: 10px 15px; color: var(--accent-color);
+  text-decoration: none; border-radius: 6px; margin-bottom: 8px;
+  white-space: nowrap; transition: background-color 0.2s, color 0.2s;
+}
+.sidebar-menu li a:hover, .sidebar-menu li.active a { background-color: var(--secondary-color); }
+.sidebar-menu li a i { margin-right: 12px; width: 20px; text-align: center; flex-shrink: 0; }
+.sidebar.collapsed .sidebar-menu span { display: none; }
+.sidebar.collapsed .sidebar-menu li a { justify-content: center; }
+.sidebar.collapsed .sidebar-menu li a i { margin-right: 0; }
+
+.sidebar-footer {
+  margin-top: auto; padding-top: 15px; border-top: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 0.8rem; text-align: center;
+}
+.sidebar-footer .status-indicator { color: #4CAF50; margin-right: 5px; }
+.sidebar.collapsed .sidebar-footer span { display: none; }
+
+.content {
+  flex: 1; /* Para ocupar o espaço restante ao lado da sidebar */
+  padding: 20px;
+  margin-left: var(--sidebar-width); /* Espaço para a sidebar FIXA */
+  transition: margin-left 0.3s ease-in-out;
+  position: relative; /* Para o z-index do ::before e ::after funcionar corretamente em relação a este elemento */
+  /* min-height não é mais necessário aqui se main-wrapper tem flex-grow:1 */
+}
+.content.sidebar-collapsed {
+  margin-left: var(--sidebar-width-collapsed);
+}
+
+/* Background image and overlay para o .content */
+/* Os pseudo-elementos ::before e ::after no .content agora são relativos ao .content em si,
+   não mais fixos na janela, para simplificar o scroll e o posicionamento com o footer. */
+.content::before { /* Imagem de fundo */
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
   background-image: url('https://altalinhamoveis.com.br/new/wp-content/uploads/2023/11/logotipo-alta-linha-moveis-planejados-e-decoracoes-sorocaba-2.png');
   background-repeat: no-repeat;
   background-position: center center;
   background-size: contain;
-  background-attachment: fixed;
+  /* background-attachment: fixed; /* Removido, pois pode conflitar com o overlay se o content scrollar */
+  opacity: 0.07; /* Mais sutil */
+  z-index: -2;
 }
-.content.sidebar-collapsed { /* Adicione esta classe ao content quando a sidebar estiver colapsada */
-    margin-left: var(--sidebar-width-collapsed);
-}
-
-
-.content::before {
+.content::after { /* Overlay de cor */
   content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(255, 255, 255, 0.95); /* Overlay branco semi-transparente */
-  z-index: 1;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: rgba(255, 255, 255, 0.93);
+  z-index: -1;
 }
-
 .content > * {
   position: relative;
-  z-index: 2;
+  z-index: 1; /* Conteúdo real na frente do ::before e ::after */
 }
 
 .card {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  padding: 20px;
-  margin-bottom: 20px;
+  background: white; border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  padding: 20px; margin-bottom: 20px;
 }
-
 .card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 15px;
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #eee;
 }
-
-.card-header h2 {
-  color: var(--dark-color);
-  font-weight: 600;
-}
-
-.btn {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: all 0.3s;
-  display: inline-flex; /* Para alinhar ícones com texto */
-  align-items: center; /* Para alinhar ícones com texto */
-  gap: 8px; /* Espaço entre ícone e texto */
-}
-.btn-sm {
-    padding: 6px 12px;
-    font-size: 0.875rem;
-}
-.btn-sm i {
-    margin-right: 4px;
-}
-
-
-.btn-primary {
-  background-color: var(--secondary-color);
-  color: white;
-}
-
-.btn-secondary {
-  background-color: var(--primary-color); /* Era --primary-color, mas pode ser cinza como #6c757d */
-  color: white;
-}
-/* Se quiser um cinza padrão para secondary:
-.btn-secondary {
-  background-color: #6c757d;
-  color: white;
-}
-.btn-secondary:hover {
-  background-color: #5a6268;
-}
-*/
-
-
-.btn-success {
-  background-color: #4CAF50;
-  color: white;
-}
-
-.btn-warning {
-  background-color: var(--warning-color);
-  color: white;
-}
-
-.btn-danger {
-  background-color: var(--danger-color);
-  color: white;
-}
-
-.btn-primary:hover, .btn-secondary:hover, .btn-success:hover, .btn-warning:hover, .btn-danger:hover {
-  opacity: 0.9;
-  transform: translateY(-2px);
-}
-
-.form-group {
-  margin-bottom: 15px;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 5px;
-  font-weight: 500;
-}
-
-.form-control {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 16px;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-table th, table td {
-  padding: 12px;
-  text-align: left;
-  border-bottom: 1px solid #ddd;
-}
-
-table th {
-  background-color: #f2f2f2;
-  font-weight: 600;
-}
-
-.loader {
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid var(--secondary-color);
-  border-radius: 50%;
-  width: 30px;
-  height: 30px;
-  animation: spin 2s linear infinite;
-  margin: 20px auto;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.alert {
-  padding: 12px;
-  border-radius: 4px;
-  margin-bottom: 15px;
-}
-
-.alert-success {
-  background-color: #d4edda;
-  color: #155724;
-}
-
-.alert-danger {
-  background-color: #f8d7da;
-  color: #721c24;
-}
+.card-header h1 { font-size: 1.75rem; font-weight: 700; color: var(--dark-color); }
+.card-header h2 { font-size: 1.25rem; color: var(--dark-color); font-weight: 600; }
 
 .summary-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 20px;
-  margin-bottom: 30px;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 20px; margin-bottom: 30px;
 }
-
 .summary-card {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  padding: 20px;
-  text-align: center;
+  background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  padding: 15px; text-align: center;
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
 }
-/* Estilo para ícone dentro do StatusCard, se necessário */
-.summary-card-icon {
-    font-size: 2rem; /* 32px */
-    margin-bottom: 10px;
-}
-
-
+.summary-card:hover { transform: translateY(-3px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+.summary-card-icon { font-size: 1.8rem; margin-bottom: 8px; }
 .summary-card h3 {
-  color: var(--text-color);
-  font-size: 16px;
-  margin-bottom: 10px;
+  color: var(--text-color); font-size: 0.85rem; font-weight: 500;
+  margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px;
 }
+.summary-value { font-size: 1.6rem; font-weight: 700; }
 
-.summary-value {
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--secondary-color); /* Cor padrão, pode ser sobrescrita por props no StatusCard */
-}
+.btn { /* ... seus estilos de .btn ... */ }
+/* ... (todos os seus estilos de .btn-primary, .btn-secondary, etc.) ... */
+.form-group { /* ... */ }
+.form-control { /* ... */ }
+table { /* ... */ }
+.loader { /* ... */ }
+@keyframes spin { /* ... */ }
+.alert { /* ... */ }
+.status-pendente, .status-Pendente { color: #ffc107; font-weight: bold; }
+.status-pago, .status-Pago { color: #28a745; font-weight: bold; }
+.status-atrasado, .status-Atrasado { color: #dc3545; font-weight: bold; }
+.status-cancelado, .status-Cancelado { color: #6c757d; font-weight: bold; }
+.status-envio-enviado { color: #28a745; font-weight: bold; }
+.status-envio-falha, .status-envio-desconhecido { color: #dc3545; font-weight: bold; }
+.modal { /* ... seus estilos de modal ... */ }
+/* ... (todos os outros estilos que estavam funcionando bem) ... */
 
-/* Footer Styles (garantindo que o seu .footer de App.js funcione com o novo layout) */
 .footer {
-  /* position: fixed; /* Removido para que o componente Footer controle isso, se ele já for fixo no App.js */
-  /* bottom: 0; */
-  /* left: 0; */ /* Se for fixo, deve considerar a largura da sidebar */
-  /* right: 0; */
   display: flex;
   justify-content: space-between;
   align-items: center;
   background-color: var(--primary-color);
   color: var(--accent-color);
-  padding: 15px 20px;
-  font-size: 0.8rem; /* Ajustado */
-  z-index: 999; /* Se for fixo */
+  padding: 10px 20px;
+  font-size: 0.75rem;
+  width: 100%; /* Ocupa a largura do .app-container */
+  flex-shrink: 0; /* Não permite que o footer encolha */
+  z-index: 999; /* Se precisar sobrepor algo, mas geralmente não necessário com este layout */
 }
-.footer-left, .footer-center, .footer-right {
-  /* flex: 1; */ /* Comentado para o conteúdo definir a largura */
-}
-.footer-left { text-align: left; }
-.footer-center { text-align: center; margin: 0 10px; }
-.footer-right { text-align: right; }
+.footer-left { text-align: left; flex-shrink: 0; }
+.footer-center { text-align: center; flex-grow: 1; margin: 0 10px; }
+.footer-right { text-align: right; flex-shrink: 0; }
 
 @media (max-width: 768px) {
-    .footer {
-        flex-direction: column;
-        gap: 8px;
-        padding-top: 10px;
-        padding-bottom: 10px;
-        /* left: 0; */ /* Se fixo e sidebar colapsada/móvel, ajuste 'left' */
-    }
-    .footer-left, .footer-center, .footer-right {
-        text-align: center;
-        width: 100%;
-    }
-    .content.sidebar-collapsed {
-        margin-left: 0; /* Ajuste para mobile se a sidebar sobrepõe ou some */
-    }
-    .content { /* Ajuste para mobile se a sidebar sobrepõe ou some */
-        margin-left: 0;
-    }
-    .card-header {
-      flex-direction: column;
-      align-items: flex-start;
-    }
-    .card-header h1, .card-header h2 {
-      margin-bottom: 10px;
-    }
-    .card-header > div { /* Para o grupo de botões no header do dashboard */
-        width: 100%;
-    }
-}
+  .sidebar {
+    /* Em mobile, a sidebar pode se transformar em um menu overlay ou ser mais fina */
+    /* Se ela continuar fixa e visível: */
+    width: var(--sidebar-width-collapsed);
+    /* Se for um menu overlay, pode ter position:fixed, left: -100%, e ser trazida com JS */
+  }
+  .sidebar.collapsed {
+      /* Mantém ou ajusta para o comportamento mobile */
+      width: var(--sidebar-width-collapsed);
+  }
 
+  .main-wrapper {
+    /* Em mobile, a sidebar pode não estar mais "ao lado" do content da mesma forma */
+    /* Se a sidebar for um overlay, o content ocuparia 100% da largura */
+  }
+  .content {
+    margin-left: var(--sidebar-width-collapsed); /* Ajuste se a sidebar for visível e colapsada */
+    /* Se a sidebar for um overlay em mobile, margin-left seria 0 */
+    padding-bottom: 100px; /* Mais espaço para o footer que pode estar em coluna */
+  }
+  .content.sidebar-collapsed {
+    margin-left: var(--sidebar-width-collapsed); /* Mantém se a sidebar colapsada ainda ocupa espaço */
+  }
 
-/* Modal Styles (Básico, caso use para outras finalidades) */
-.modal {
-  position: fixed;
-  z-index: 1050;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  overflow: auto;
-  background-color: rgba(0,0,0,0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.modal-content {
-  background-color: #fefefe;
-  padding: 25px;
-  border: 1px solid #888;
-  width: 80%;
-  max-width: 500px; /* Default */
-  border-radius: 8px;
-  box-shadow: 0 5px 15px rgba(0,0,0,.5);
-  position: relative;
-}
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #eee;
-  margin-bottom: 15px;
-}
-.modal-header h2 {
-  font-size: 1.5rem;
-  color: #333;
-  font-weight: 600;
-}
-.close-button {
-  color: #aaa;
-  font-size: 28px;
-  font-weight: bold;
-  cursor: pointer;
-  background: none;
-  border: none;
-  padding: 0;
-  line-height: 1;
-}
-.close-button:hover,
-.close-button:focus {
-  color: black;
-}
-.modal-body {
-  min-height: 80px;
-  line-height: 1.6;
-  max-height: 60vh;
-  overflow-y: auto;
-}
-.modal-body p { margin-bottom: 10px; }
-.modal-footer {
-    margin-top: 20px;
-    padding-top: 15px;
-    border-top: 1px solid #eee;
-    text-align: right;
-}
-.modal-footer .btn:not(:last-child) {
-    margin-right: 10px;
+  .footer {
+    flex-direction: column; gap: 5px; font-size: 0.7rem; padding: 8px 15px;
+    position: relative; /* Para mobile, não fixo geralmente é melhor */
+    width: 100%;
+  }
+  .footer-left, .footer-center, .footer-right { text-align: center; width: 100%; margin: 0; }
+
+  .card-header { flex-direction: column; align-items: stretch; }
+  .card-header h1, .card-header h2 { margin-bottom: 10px; text-align: center; }
+  .content > .card-header > div:last-child {
+      width: 100%; display: flex; flex-direction: column; gap: 10px;
+  }
+  .content > .card-header > div:last-child .btn { width: 100%; }
+  .summary-cards { grid-template-columns: 1fr; }
 }

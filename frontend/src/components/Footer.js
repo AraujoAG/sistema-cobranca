@@ -3,7 +3,7 @@ import React from 'react';
 
 function Footer() {
   return (
-    <footer className="footer"> {/* A classe .footer é estilizada no App.css */}
+    <footer className="footer">
       <div className="footer-left">
         Copyright &copy;{new Date().getFullYear()} Alta Linha Móveis. All rights reserved.
       </div>
