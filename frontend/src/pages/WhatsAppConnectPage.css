@@ -1,0 +1,34 @@
+/* frontend/src/pages/WhatsAppConnectPage.css */
+
+.whatsapp-status-container {
+  padding: 20px;
+  text-align: center;
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.qr-container {
+  margin-top: 20px;
+  padding: 20px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  display: inline-block;
+  background-color: #fff;
+}
+
+.qr-container h3 {
+  margin-bottom: 10px;
+}
+
+.qr-container p {
+  font-size: 0.9rem;
+  color: #666;
+  margin-bottom: 15px;
+}
+
+.alert i {
+  margin-right: 10px;
+}
