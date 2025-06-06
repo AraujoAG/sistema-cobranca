@@ -51,6 +51,11 @@ WORKDIR /usr/src/app
 # Copia os arquivos de dependência do backend para o container
 COPY backend/package*.json ./
 
+# ---- PASSO DE DEBUG ----
+# Imprime o conteúdo do package.json para vermos qual versão está sendo usada
+RUN echo "--- Conteúdo do package.json ---" && cat ./package.json && echo "--- Fim do package.json ---"
+# ---- FIM DO PASSO DE DEBUG ----
+
 # Instala as dependências do backend
 RUN npm install --production
 
