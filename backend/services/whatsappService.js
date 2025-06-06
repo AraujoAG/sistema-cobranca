@@ -78,17 +78,17 @@ async function initializeClient() {
     console.log('✅ Cliente WhatsApp está pronto!');
   });
   
-  // Evento para quando a sessão é autenticada (importante para salvar)
   client.on('authenticated', async (session) => {
     console.log('✅ Sessão do WhatsApp autenticada.');
-    await saveSession(session);
+    if(session) {
+      await saveSession(session);
+    }
   });
 
   client.on('auth_failure', msg => {
     clientStatus = 'FALHA_AUTENTICACAO';
     statusMessage = `Falha na autenticação: ${msg}. Removendo sessão do banco.`;
     console.error('❌ Falha na autenticação do WhatsApp:', msg);
-    // Limpa a sessão inválida do banco
     db.query('DELETE FROM whatsapp_session WHERE id = 1');
   });
 
@@ -131,7 +131,7 @@ async function logoutClient() {
     if (!client) return;
     try {
         await client.logout();
-        await db.query('DELETE FROM whatsapp_session WHERE id = 1'); // Limpa a sessão do banco
+        await db.query('DELETE FROM whatsapp_session WHERE id = 1');
         clientStatus = 'DESCONECTADO';
         statusMessage = 'Sessão encerrada com sucesso.';
     } catch (error) {
