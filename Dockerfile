@@ -1,8 +1,9 @@
 # Usamos uma imagem base do Node.js que facilita a instalação de pacotes do sistema
 FROM node:18-bullseye-slim
 
-# Instala todas as dependências de sistema necessárias para o Puppeteer (Chrome) rodar
+# Instala todas as dependências de sistema necessárias
 RUN apt-get update && apt-get install -y \
+    git \
     ca-certificates \
     fonts-liberation \
     libappindicator3-1 \
@@ -48,7 +49,6 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /usr/src/app
 
 # Copia os arquivos de dependência do backend para o container
-# Isso otimiza o cache do Docker, para não reinstalar tudo a cada pequena mudança no código
 COPY backend/package*.json ./
 
 # Instala as dependências do backend
