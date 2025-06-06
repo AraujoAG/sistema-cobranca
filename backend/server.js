@@ -5,11 +5,6 @@ console.log('--- FIM DO DEBUG ---');
 
 const express = require('express');
 const cors = require('cors');
-// ... resto do seu arquivo ...
-
-// backend/server.js
-const express = require('express');
-const cors = require('cors');
 const dotenv = require('dotenv');
 
 dotenv.config();
