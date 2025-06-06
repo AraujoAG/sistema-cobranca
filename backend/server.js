@@ -1,3 +1,12 @@
+// Adicione estas 3 linhas no topo do seu server.js
+console.log('--- INICIANDO DEBUG DE VARIAVEL DE AMBIENTE ---');
+console.log('Valor recebido para DATABASE_URL:', process.env.DATABASE_URL);
+console.log('--- FIM DO DEBUG ---');
+
+const express = require('express');
+const cors = require('cors');
+// ... resto do seu arquivo ...
+
 // backend/server.js
 const express = require('express');
 const cors = require('cors');
