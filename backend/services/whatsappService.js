@@ -1,9 +1,9 @@
 // backend/services/whatsappService.js
-const { Client, LegacySessionAuth, NoWebCache } = require('whatsapp-web.js'); // <-- 1. IMPORTAR O NoWebCache
+const { Client, LegacySessionAuth } = require('whatsapp-web.js'); // <-- Voltamos a importar apenas o que precisamos
 const db = require('../config/db');
 const qrcode = require('qrcode-terminal');
 
-// ... (as funções saveSession e fetchSession permanecem exatamente as mesmas) ...
+// Funções saveSession e fetchSession permanecem as mesmas
 async function saveSession(session) {
   try {
     console.log('💾 Salvando sessão no banco de dados...');
@@ -47,7 +47,7 @@ async function initializeClient() {
     authStrategy: new LegacySessionAuth({
       session: savedSession || undefined
     }),
-    webCache: new NoWebCache(), // <-- 2. ADICIONAR ESTA OPÇÃO PARA DESATIVAR O CACHE
+    // REMOVEMOS a opção webCache, pois a versão beta lida com isso melhor
     puppeteer: {
       headless: true,
       args: [
@@ -63,7 +63,7 @@ async function initializeClient() {
     }
   });
 
-  // ... (O resto do arquivo, com client.on('qr'), client.on('ready'), etc., permanece exatamente o mesmo) ...
+  // O resto do código (client.on, exports, etc.) permanece exatamente o mesmo
   client.on('qr', qr => {
     qrCodeString = qr;
     clientStatus = 'AGUARDANDO_QR';
