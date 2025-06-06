@@ -1,70 +1,55 @@
 // backend/controllers/dashboardController.js
 const persistenceService = require('../bot/persistenceService');
-const path = require('path');
-const xlsx = require('xlsx');
+const db = require('../config/db');
 
-// Arquivo Excel dos boletos
-const arquivoBoletos = path.join(__dirname, '../bot/boletos.xlsx');
-
-exports.obterResumo = (req, res) => {
+exports.obterResumo = async (req, res) => {
   try {
-    // Inicializar serviço de persistência se necessário
-    persistenceService.initializeHistoricoFile();
+    const { rows: boletos } = await db.query('SELECT valor, status, vencimento FROM clientes');
+    const historicoCompleto = await persistenceService.carregarHistorico();
     
-    // Ler dados do Excel
-    const workbook = xlsx.readFile(arquivoBoletos);
-    const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
-    const boletos = xlsx.utils.sheet_to_json(worksheet);
-    
-    // Obter histórico de cobranças
-    const historico = persistenceService.carregarHistorico();
-    
-    // Calcular estatísticas
     const hoje = new Date();
+    hoje.setHours(0,0,0,0);
+
     let boletosVencidos = 0;
     let boletosAVencer = 0;
-    let valorTotal = 0;
+    let valorTotalEmAberto = 0;
     
     boletos.forEach(boleto => {
-      const partes = boleto.Vencimento.split('/');
-      const dataVencimento = new Date(partes[2], partes[1] - 1, partes[0]);
-      
-      valorTotal += parseFloat(boleto.Valor);
-      
-      if (dataVencimento < hoje) {
-        boletosVencidos++;
-      } else {
-        boletosAVencer++;
+      if (boleto.status.toLowerCase() === 'pendente' || boleto.status.toLowerCase() === 'atrasado') {
+        valorTotalEmAberto += parseFloat(boleto.valor);
+        const partes = boleto.vencimento.split('/');
+        const dataVencimento = new Date(partes[2], partes[1] - 1, partes[0]);
+        dataVencimento.setHours(0,0,0,0);
+        if (dataVencimento < hoje) {
+          boletosVencidos++;
+        } else {
+          boletosAVencer++;
+        }
       }
     });
     
-    // Preparar resumo
     const resumo = {
       totalClientes: boletos.length,
       boletosVencidos,
       boletosAVencer,
-      valorTotal,
-      mensagensEnviadas: historico.mensagensEnviadas.length,
-      ultimaExecucao: historico.ultimaExecucao
+      valorTotal: valorTotalEmAberto,
+      mensagensEnviadas: historicoCompleto.mensagensEnviadas.length,
+      ultimaExecucao: historicoCompleto.ultimaExecucao
     };
     
     res.json(resumo);
   } catch (error) {
+    console.error('Erro ao obter resumo do dashboard:', error);
     res.status(500).json({ erro: 'Erro ao obter resumo', detalhes: error.message });
   }
 };
 
-exports.obterEstatisticas = (req, res) => {
+exports.obterEstatisticas = async (req, res) => {
   try {
-    // Inicializar serviço de persistência
-    persistenceService.initializeHistoricoFile();
-    
-    // Obter estatísticas do serviço
-    const estatisticas = persistenceService.obterEstatisticas();
-    
+    const estatisticas = await persistenceService.obterEstatisticas();
     res.json(estatisticas);
   } catch (error) {
+    console.error('Erro ao obter estatísticas do dashboard:', error);
     res.status(500).json({ erro: 'Erro ao obter estatísticas', detalhes: error.message });
   }
 };

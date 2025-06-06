@@ -1,23 +1,20 @@
 // backend/services/whatsappService.js
 const { Client, RemoteAuth } = require('whatsapp-web.js');
-const PgStore = require('./pgStore'); // <-- MUDANÇA AQUI: Usando nosso arquivo local
+const PgStore = require('./pgStore');
 const qrcode = require('qrcode-terminal');
 
 console.log('Inicializando o serviço do WhatsApp com armazenamento via PostgreSQL (Custom Store)...');
 
-// 1. Crie uma instância do nosso 'Store' customizado
 const store = new PgStore({
     tableName: 'wwebjs_sessions'
 });
 
-// 2. Configure a estratégia de autenticação remota, passando o 'store'
 const authStrategy = new RemoteAuth({
-    clientId: 'bot-alta-linha', // Dê um ID único para esta sessão
+    clientId: 'bot-alta-linha',
     store: store,
-    backupSyncIntervalMs: 300000 // Salva a sessão no BD a cada 5 minutos
+    backupSyncIntervalMs: 300000
 });
 
-// 3. O resto do código permanece o mesmo de antes
 const client = new Client({
     authStrategy: authStrategy,
     puppeteer: {
@@ -35,10 +32,6 @@ const client = new Client({
     }
 });
 
-// ... COPIE E COLE O RESTO DO CÓDIGO DO `whatsappService.js` DA MINHA RESPOSTA ANTERIOR AQUI ...
-// (A parte com client.on('qr'), client.on('ready'), initializeClient(), etc., é exatamente a mesma)
-
-// ... (Resto do código igual) ...
 let qrCodeString = null;
 let clientStatus = 'DESCONECTADO';
 let statusMessage = 'Serviço não inicializado.';

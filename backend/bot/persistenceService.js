@@ -1,148 +1,114 @@
 // backend/bot/persistenceService.js
-const fs = require('fs');
-const path = require('path');
+const db = require('../config/db');
 
-const historicoFilePath = path.join(__dirname, 'historico_cobrancas.json');
-// ATENÇÃO: Usar __dirname para dados dinâmicos em um ambiente sem servidor como o Render
-// resultará em perda de dados em reinicializações/redeploys.
-// Esta abordagem é adequada apenas para desenvolvimento local ou se o arquivo
-// for parte do build e não mudar. Para dados dinâmicos, use um banco de dados.
-
-function initializeHistoricoFile() {
+async function carregarHistorico() {
   try {
-    if (!fs.existsSync(historicoFilePath)) {
-      // Cria o arquivo com uma estrutura inicial vazia.
-      // No Render, este arquivo será criado, mas será perdido no próximo deploy/restart.
-      fs.writeFileSync(historicoFilePath, JSON.stringify({
-        ultimaExecucao: null,
-        mensagensEnviadas: []
-      }, null, 2), 'utf8');
-      console.log(`📁 Arquivo de histórico de cobranças criado em: ${historicoFilePath} (Será efêmero no Render)`);
+    const { rows } = await db.query(`
+        SELECT id, cliente_id, nome_cliente, telefone_cliente, valor_boleto, vencimento_boleto, 
+               to_char(data_envio, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "dataEnvio", 
+               status_envio as status
+        FROM historico_cobrancas ORDER BY data_envio DESC
+    `);
+    
+    let ultimaExecucao = null;
+    if (rows.length > 0) {
+        ultimaExecucao = rows[0].dataEnvio;
     }
-  } catch (error) {
-    console.error('❌ Erro ao tentar inicializar o arquivo de histórico:', error);
-    // Em um cenário de produção, você pode querer lançar o erro ou ter um fallback.
-  }
-}
 
-function carregarHistorico() {
-  initializeHistoricoFile(); // Garante que o arquivo exista antes de tentar ler
-  try {
-    if (fs.existsSync(historicoFilePath)) {
-      const dadosRaw = fs.readFileSync(historicoFilePath, 'utf8');
-      return JSON.parse(dadosRaw);
-    }
-    // Se o arquivo não existir mesmo após initialize (improvável, mas por segurança)
-    return { ultimaExecucao: null, mensagensEnviadas: [] };
+    return {
+        ultimaExecucao: ultimaExecucao,
+        mensagensEnviadas: rows.map(r => ({...r, valor: r.valor_boleto, nome: r.nome_cliente, telefone: r.telefone_cliente, vencimento: r.vencimento_boleto }))
+    };
   } catch (error) {
-    console.error('❌ Erro ao carregar histórico de cobranças:', error);
-    // Retorna um estado padrão em caso de erro de parse ou leitura
+    console.error('Erro ao carregar histórico de cobranças do BD:', error);
     return { ultimaExecucao: null, mensagensEnviadas: [] };
   }
 }
 
-function salvarHistorico(historico) {
+async function registrarMensagemEnviada(boleto, statusEnvio = 'enviado', mensagemTexto = null, respostaApi = null) {
+  const query = `
+    INSERT INTO historico_cobrancas 
+    (cliente_id, nome_cliente, telefone_cliente, valor_boleto, vencimento_boleto, status_envio, mensagem_enviada, resposta_api)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    RETURNING *;
+  `;
+  const values = [
+    boleto.ID, boleto.Nome, boleto.Telefone, boleto.Valor, boleto.Vencimento,
+    statusEnvio, mensagemTexto, respostaApi ? String(respostaApi) : null
+  ];
+
   try {
-    // No Render, esta escrita será no sistema de arquivos efêmero.
-    fs.writeFileSync(historicoFilePath, JSON.stringify(historico, null, 2), 'utf8');
-    // console.log('💾 Histórico de cobranças salvo com sucesso (efêmero no Render).');
+    await db.query(query, values);
+    console.log(`📝 Mensagem para ${boleto.Nome} (status: ${statusEnvio}) registrada no BD.`);
   } catch (error) {
-    console.error('❌ Erro ao salvar histórico de cobranças:', error);
+    console.error('Erro ao registrar mensagem no BD:', error);
   }
 }
 
-function registrarMensagemEnviada(boleto, status = 'enviado') {
-  const historico = carregarHistorico();
+async function verificarMensagemEnviadaHoje(boleto) {
+  const hojeInicio = new Date();
+  hojeInicio.setHours(0, 0, 0, 0);
 
-  const novoRegistro = {
-    id: `${boleto.ID || boleto.Telefone}-${boleto.Vencimento}-${Date.now()}`, // Garante um ID único
-    nome: boleto.Nome,
-    telefone: boleto.Telefone,
-    valor: boleto.Valor,
-    vencimento: boleto.Vencimento,
-    dataEnvio: new Date().toISOString(),
-    status: status
-  };
+  const query = `
+    SELECT 1 FROM historico_cobrancas
+    WHERE cliente_id = $1 
+      AND vencimento_boleto = $2
+      AND status_envio = 'enviado'
+      AND data_envio >= $3
+    LIMIT 1;
+  `;
+  const values = [boleto.ID, boleto.Vencimento, hojeInicio];
 
-  historico.mensagensEnviadas.push(novoRegistro);
-  historico.ultimaExecucao = new Date().toISOString();
-
-  salvarHistorico(historico);
-  console.log(`📝 Mensagem para ${boleto.Nome} (${status}) registrada no histórico.`);
-
-  return novoRegistro;
-}
-
-function verificarMensagemEnviada(boleto) {
-  const historico = carregarHistorico();
-  const hoje = new Date().toISOString().split('T')[0]; // Data no formato YYYY-MM-DD
-
-  // É importante que boleto.Telefone e boleto.Vencimento existam e sejam consistentes
-  const telefoneFormatado = boleto.Telefone ? boleto.Telefone.toString().replace(/\D/g, '') : '';
-
-  const mensagemJaEnviada = historico.mensagensEnviadas.some(msg => {
-    const dataEnvio = msg.dataEnvio ? msg.dataEnvio.split('T')[0] : '';
-    const msgTelefoneFormatado = msg.telefone ? msg.telefone.toString().replace(/\D/g, '') : '';
-
-    // Compara por telefone, vencimento e se foi enviado hoje com sucesso
-    return msgTelefoneFormatado === telefoneFormatado &&
-           msg.vencimento === boleto.Vencimento &&
-           dataEnvio === hoje &&
-           msg.status === 'enviado'; // Considera apenas envios bem-sucedidos para evitar reenvio
-  });
-
-  if (mensagemJaEnviada) {
-      console.log(`⏭️ Verificação: Mensagem para ${boleto.Nome} (Tel: ${telefoneFormatado}, Venc: ${boleto.Vencimento}) já foi enviada com sucesso hoje.`);
+  try {
+    const { rows } = await db.query(query, values);
+    if (rows.length > 0) {
+        console.log(`⏭️ Verificação BD: Mensagem para ${boleto.Nome} já foi enviada com sucesso hoje.`);
+        return true;
+    }
+    return false;
+  } catch (error) {
+    console.error('Erro ao verificar mensagem enviada no BD:', error);
+    return false;
   }
-  return mensagemJaEnviada;
 }
 
-function obterEstatisticas() {
-  const historico = carregarHistorico();
-  const stats = {
-    totalEnviadasComSucesso: 0,
-    totalFalhas: 0,
-    totalOutrosStatus:0,
-    enviosHojeComSucesso: 0,
-    falhasHoje: 0,
-    ultimoEnvio: historico.ultimaExecucao,
-    statusContagem: {} // Contará todos os status
-  };
+async function obterEstatisticas() {
+  try {
+    const stats = { totalEnviadasComSucesso: 0, totalFalhas: 0, enviosHojeComSucesso: 0, falhasHoje: 0, ultimoEnvio: null, statusContagem: {} };
+    const contagemGeralQuery = `SELECT status_envio, COUNT(*) as count FROM historico_cobrancas GROUP BY status_envio;`;
+    const { rows: contagemGeral } = await db.query(contagemGeralQuery);
+    contagemGeral.forEach(row => {
+        const count = parseInt(row.count, 10);
+        stats.statusContagem[row.status_envio] = count;
+        if (row.status_envio === 'enviado') stats.totalEnviadasComSucesso += count;
+        else stats.totalFalhas += count;
+    });
 
-  const hojeISO = new Date().toISOString().split('T')[0];
-
-  historico.mensagensEnviadas.forEach(msg => {
-    // Contagem geral por status
-    if (!stats.statusContagem[msg.status]) {
-      stats.statusContagem[msg.status] = 0;
+    const hojeInicio = new Date();
+    hojeInicio.setHours(0, 0, 0, 0);
+    const contagemHojeQuery = `SELECT status_envio, COUNT(*) as count FROM historico_cobrancas WHERE data_envio >= $1 GROUP BY status_envio;`;
+    const { rows: contagemHoje } = await db.query(contagemHojeQuery, [hojeInicio]);
+    contagemHoje.forEach(row => {
+        const count = parseInt(row.count, 10);
+        if (row.status_envio === 'enviado') stats.enviosHojeComSucesso += count;
+        else stats.falhasHoje += count;
+    });
+    
+    const ultimaExecQuery = `SELECT MAX(data_envio) as last_execution FROM historico_cobrancas;`;
+    const { rows: ultimaExecResult } = await db.query(ultimaExecQuery);
+    if (ultimaExecResult.length > 0 && ultimaExecResult[0].last_execution) {
+        stats.ultimoEnvio = new Date(ultimaExecResult[0].last_execution).toISOString();
     }
-    stats.statusContagem[msg.status]++;
-
-    if (msg.status === 'enviado') {
-        stats.totalEnviadasComSucesso++;
-    } else if (msg.status === 'falha' || msg.status === 'erro') {
-        stats.totalFalhas++;
-    } else {
-        stats.totalOutrosStatus++;
-    }
-
-    // Contagem de hoje por status
-    const dataEnvioISO = msg.dataEnvio ? msg.dataEnvio.split('T')[0] : '';
-    if (dataEnvioISO === hojeISO) {
-      if (msg.status === 'enviado') {
-        stats.enviosHojeComSucesso++;
-      } else if (msg.status === 'falha' || msg.status === 'erro') {
-        stats.falhasHoje++;
-      }
-    }
-  });
-  return stats;
+    return stats;
+  } catch (error) {
+    console.error('Erro ao obter estatísticas do BD:', error);
+    return { totalEnviadasComSucesso: 0, totalFalhas: 0, enviosHojeComSucesso: 0, falhasHoje: 0, ultimoEnvio: null, statusContagem: {} };
+  }
 }
 
 module.exports = {
-  initializeHistoricoFile, // Exporte se chamado externamente
   registrarMensagemEnviada,
-  verificarMensagemEnviada,
-  carregarHistorico, // Exporte se precisar ler o histórico completo externamente
+  verificarMensagemEnviadaHoje,
+  carregarHistorico,
   obterEstatisticas
 };
